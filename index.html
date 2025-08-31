@@ -296,7 +296,10 @@ function findIdColumn(cols, rows){
   const maxRows = Math.min(rows.length, 30); const score = new Array(cols.length).fill(0);
   for (let r = 0; r < maxRows; r++){ const row = rows[r] || [];
     for (let c = 0; c < cols.length; c++){ const v = String(row[c] ?? '').trim(); if (!v) continue;
-      if (/^ID[A-Z0-9]{4,}$/i.test(v)) score[c]+=3; if (/^[A-Z0-9]{8,}$/.test(v)) score[c]+=1; if (v.length>=8 && v<=16) score[c]+=0.5; } }
+      if (/^ID[A-Z0-9]{4,}$/i.test(v)) score[c]+=3;
+      if (/^[A-Z0-9]{8,}$/.test(v)) score[c]+=1;
+      if (v.length>=8 && v.length<=16) score[c]+=0.5;
+    } }
   let best=-1,scoreBest=0; for(let c=0;c<score.length;c++){ if(score[c]>scoreBest){scoreBest=score[c]; best=c;} } return scoreBest>0?best:-1;
 }
 function getDateColumns(cols){return cols.map((c,i)=> normDate(String(c).trim()) ? i : -1).filter(i=>i>=0);}
@@ -368,29 +371,28 @@ function saveKpiPref(){ localStorage.setItem(KPI_PREF_KEY, JSON.stringify(KPI_PR
 
 function mondayDatesLabel(base){const ys=weekDates(base); return `${ys[0]} → ${ys[4]}`;}
 
-/* KPI semanal con fallback (L-V → L-D → últimos 7 días) */
-async function computeGroupWeekAttendance(sheetId, cfg, baseDate, expectedDaysMode){
+/* KPI semanal:
+   - Esta semana / Semana pasada: LV y, si no hay, LD de la MISMA semana.
+   - Modo fecha manual (mode==='date'): ESTRICTO (LV; si no hay, LD de la misma semana; SIN "últimos 7 días"). */
+async function computeGroupWeekAttendance(sheetId, cfg, baseDate, expectedDaysMode, mode){
+  const strict = (mode === 'date');
   try{
     const {cols, rows}=await loadSheetBlock(sheetId,'asistencia',cfg);
 
-    // 1) Lun–Vie
-    let weekSet = getWeekSet(baseDate,false);
-    let dateCols = getDateColumns(cols).filter(i => weekSet.has(normDate(cols[i])));
+    // 1) Lun–Vie de esa semana
+    const setLV = getWeekSet(baseDate,false);
+    let dateCols = getDateColumns(cols).filter(i => setLV.has(normDate(cols[i])));
 
-    // 2) Lun–Dom
-    if(dateCols.length===0){
-      weekSet = getWeekSet(baseDate,true);
-      dateCols = getDateColumns(cols).filter(i => weekSet.has(normDate(cols[i])));
+    // 2) Si no hay columnas: Lun–Dom de esa MISMA semana
+    if (dateCols.length === 0) {
+      const setLD = getWeekSet(baseDate,true);
+      dateCols = getDateColumns(cols).filter(i => setLD.has(normDate(cols[i])));
     }
 
-    // 3) Últimos 7 días
-    if(dateCols.length===0){
-      const end = new Date(baseDate.getFullYear(), baseDate.getMonth(), baseDate.getDate());
-      const start = new Date(end); start.setDate(end.getDate()-6);
-      const y0 = ymd(start), y1 = ymd(end);
-      dateCols = getDateColumns(cols).filter(i=>{
-        const d = normDate(cols[i]); return d && d>=y0 && d<=y1;
-      });
+    // 3) Si sigue vacío y NO es estricto, (opcionalmente) podríamos ampliar a últimos 7 días.
+    //    En modo estricto NO lo hacemos.
+    if (dateCols.length === 0 && !strict) {
+      // (omitido por ahora a petición)
     }
 
     const students = rows.length;
@@ -404,7 +406,9 @@ async function computeGroupWeekAttendance(sheetId, cfg, baseDate, expectedDaysMo
     const pct = expectedFull>0 ? Math.round((present/expectedFull)*1000)/10 : 0;
 
     return {present, regDays, expected: expectedFull, pct};
-  }catch{return null;}
+  }catch{
+    return null;
+  }
 }
 
 function renderHome(){
@@ -437,7 +441,7 @@ async function refreshAllKPIs(){
   for(const g of GROUPS){
     const cfg=CFG[g.code]; if(!cfg.sheetId) continue;
     const el=$('kpi-'+g.code); if(!el) continue; el.textContent='Asistencia semana: calculando…';
-    const k=await computeGroupWeekAttendance(cfg.sheetId,cfg,base,KPI_PREF.exp);
+    const k=await computeGroupWeekAttendance(cfg.sheetId,cfg,base,KPI_PREF.exp,KPI_PREF.mode);
     el.textContent= k? `Asistencia semana: ${k.present}/${k.expected} (${(k.pct||0).toFixed(1)}%) · días ${k.regDays}/${KPI_PREF.exp==='registered'?k.regDays:KPI_PREF.exp}` : 'Asistencia semana: no disponible';
   }
 }
