@@ -34,8 +34,21 @@
   table.cfg{width:100%;border-collapse:separate;border-spacing:0 8px}
   table.cfg th, table.cfg td{font-size:14px;color:var(--text);vertical-align:top}
   table.cfg input{width:100%;padding:10px 12px;border-radius:10px;border:1px solid var(--input-bd);background:var(--input-bg);color:var(--text)}
-  .cfg-small{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-top:6px} /* <-- ahora 4 columnas */
-  .cfg-small input{font-size:12px;padding:8px}
+  /* === Avanzado: GIDs === */
+  .gid-box-title{margin-top:6px;margin-bottom:4px;font-weight:700;color:var(--text);font-size:13px}
+  .cfg-small{display:grid;grid-template-columns:1fr;gap:12px;margin-top:8px}
+  @media (min-width:860px){ .cfg-small{grid-template-columns:repeat(2,minmax(280px,1fr));} }
+  .gid-group{display:flex;flex-direction:column;gap:6px}
+  .gid-label{font-size:12px;color:var(--muted)}
+  .gid-input{
+    font-size:16px; /* más grande */
+    padding:12px 14px; /* más alto */
+    border-radius:12px;
+    border:2px solid var(--input-bd);
+    background:var(--input-bg);
+    color:var(--text);
+    font-family:ui-monospace,Consolas,monospace; /* monoespaciado */
+  }
   .view{display:none}
   .show{display:block}
   .list{margin-top:12px;background:var(--card);border:1px solid var(--border);border-radius:18px;overflow:hidden}
@@ -83,7 +96,7 @@
         <button class="ghost" id="btn-clear">Borrar configuración</button>
       </div>
       <p class="hint" style="margin-top:8px">
-        Si el nombre de pestañas no coincide, llena los <b>GID</b> (avanzado). Para obtenerlos, entra a la hoja, haz clic en la pestaña y copia el número al final de la URL <span class="mono">...#gid=<b>123456789</b></span>.
+        🧩 <b>Avanzado: GIDs</b> — pega <b>sólo el número</b> que aparece en la URL tras <span class="mono">#gid=</span> estando en cada pestaña (Puntos, Asistencia, Registro de trabajos, Presets).
       </p>
     </div>
   </section>
@@ -110,7 +123,7 @@
     <h2 id="student-title" style="color:var(--text);margin:8px 0 2px 0"></h2>
     <div id="student-meta" class="hint"></div>
 
-    <div class="section" id="resume">
+    <div class="section">
       <h4>Resumen</h4>
       <div id="resume-pills"></div>
     </div>
@@ -136,46 +149,29 @@
 
 <script>
 /* ===== TEMA ===== */
-const THEME_KEY = 'audqr_theme';
-const btnTheme = document.getElementById('btn-theme');
-function applyTheme(t){ document.documentElement.setAttribute('data-theme', t); localStorage.setItem(THEME_KEY, t); btnTheme.textContent = t==='light' ? '☀️ Claro' : '🌙 Oscuro'; }
-(function(){ applyTheme(localStorage.getItem(THEME_KEY)||'dark'); })();
-btnTheme.addEventListener('click', ()=>{ applyTheme((document.documentElement.getAttribute('data-theme')||'dark')==='dark'?'light':'dark'); });
+const THEME_KEY='audqr_theme';
+const btnTheme=document.getElementById('btn-theme');
+function applyTheme(t){document.documentElement.setAttribute('data-theme',t);localStorage.setItem(THEME_KEY,t);btnTheme.textContent=t==='light'?'☀️ Claro':'🌙 Oscuro';}
+(function(){applyTheme(localStorage.getItem(THEME_KEY)||'dark');})();
+btnTheme.addEventListener('click',()=>{applyTheme((document.documentElement.getAttribute('data-theme')||'dark')==='dark'?'light':'dark');});
 
 /* ===== UTIL ===== */
-const GROUPS = [
-  {code:'1A', label:'1ero A'},{code:'1B', label:'1ero B'},
-  {code:'2A', label:'2do A'},{code:'2B', label:'2do B'},
-  {code:'3A', label:'3ro A'},{code:'3B', label:'3ro B'},
-  {code:'4A', label:'4to A'},{code:'4B', label:'4to B'},
-  {code:'5A', label:'5to A'},{code:'5B', label:'5to B'},
-  {code:'6A', label:'6to A'},{code:'6B', label:'6to B'},
-];
-const LS_KEY = 'audqr_sheets_v4';
-
-const stripDiacritics = s => s.normalize('NFD').replace(/[\u0300-\u036f]/g,'');
-const normText = s => stripDiacritics(String(s||'').toLowerCase()).replace(/\s+/g,' ').trim();
-const normTrabajo = s => normText(s).replace(/^trabajo\s*/,'');
-const normPagina = s => normText(s).replace(/^p\.?\s*/,'');
-function normDate(s){
-  const t = String(s||'').trim(); if(!t) return '';
-  const mIso = /^(\d{4}-\d{2}-\d{2})/.exec(t); if(mIso) return mIso[1];
-  const mDMY = /^(\d{1,2})[\/-](\d{1,2})[\/-](\d{4})$/.exec(t);
-  if(mDMY){ const d=new Date(+mDMY[3],mDMY[2]-1,+mDMY[1]); return d.toISOString().slice(0,10); }
-  const n = Number(t.replace(',','.')); if(!Number.isNaN(n)){ const base=new Date(1899,11,30); const d=new Date(base.getTime()+n*86400000); return d.toISOString().slice(0,10); }
-  const d = new Date(t); if(!isNaN(+d)) return d.toISOString().slice(0,10);
-  return '';
-}
-function extractSheetId(s){ if(!s) return ''; const m=String(s).match(/\/spreadsheets\/d\/([a-zA-Z0-9-_]+)/); return m?m[1]:s.trim(); }
-function $(id){ return document.getElementById(id); }
-function show(id){ for(const el of document.querySelectorAll('.view')) el.classList.remove('show'); $(id).classList.add('show'); }
-function setHTML(id,html){ $(id).innerHTML=html; }
-function idxOfAnyLoose(cols,names){ const norm=s=>String(s||'').toLowerCase().replace(/[\s_]+/g,'').trim(); const lc=cols.map(c=>norm(c)); for(const k of names){ const i=lc.indexOf(norm(k)); if(i>=0) return i; } return -1; }
+const GROUPS=[{code:'1A',label:'1ero A'},{code:'1B',label:'1ero B'},{code:'2A',label:'2do A'},{code:'2B',label:'2do B'},{code:'3A',label:'3ro A'},{code:'3B',label:'3ro B'},{code:'4A',label:'4to A'},{code:'4B',label:'4to B'},{code:'5A',label:'5to A'},{code:'5B',label:'5to B'},{code:'6A',label:'6to A'},{code:'6B',label:'6to B'}];
+const LS_KEY='audqr_sheets_v5';
+const stripDiacritics=s=>s.normalize('NFD').replace(/[\u0300-\u036f]/g,'');
+const normText=s=>stripDiacritics(String(s||'').toLowerCase()).replace(/\s+/g,' ').trim();
+const normTrabajo=s=>normText(s).replace(/^trabajo\s*/,'');
+const normPagina=s=>normText(s).replace(/^p\.?\s*/,'');
+function normDate(s){const t=String(s||'').trim(); if(!t) return ''; const mIso=/^(\d{4}-\d{2}-\d{2})/.exec(t); if(mIso) return mIso[1]; const mDMY=/^(\d{1,2})[\/-](\d{1,2})[\/-](\d{4})$/.exec(t); if(mDMY){const d=new Date(+mDMY[3],mDMY[2]-1,+mDMY[1]); return d.toISOString().slice(0,10);} const n=Number(t.replace(',','.')); if(!Number.isNaN(n)){const base=new Date(1899,11,30); const d=new Date(base.getTime()+n*86400000); return d.toISOString().slice(0,10);} const d=new Date(t); if(!isNaN(+d)) return d.toISOString().slice(0,10); return '';}
+function extractSheetId(s){if(!s) return ''; const m=String(s).match(/\/spreadsheets\/d\/([a-zA-Z0-9-_]+)/); return m?m[1]:s.trim();}
+function $(id){return document.getElementById(id);}
+function show(id){for(const el of document.querySelectorAll('.view')) el.classList.remove('show'); $(id).classList.add('show');}
+function setHTML(id,html){$(id).innerHTML=html;}
+function idxOfAnyLoose(cols,names){const norm=s=>String(s||'').toLowerCase().replace(/[\s_]+/g,'').trim(); const lc=cols.map(c=>norm(c)); for(const k of names){const i=lc.indexOf(norm(k)); if(i>=0) return i;} return -1;}
 
 /* ===== LECTORES ===== */
-/* GViz JSONP con headers=1 y fallback a fila 1 como encabezados */
-let __jsonpSeq = 0;
-function fetchGViz(sheetId, sheetName){
+let __jsonpSeq=0;
+function fetchGViz(sheetId,sheetName){
   return new Promise((resolve,reject)=>{
     const cb=`__gviz_cb_${Date.now()}_${++__jsonpSeq}`;
     const url=`https://docs.google.com/spreadsheets/d/${sheetId}/gviz/tq?headers=1&tqx=out:json;responseHandler:${cb}&sheet=${encodeURIComponent(sheetName)}&ts=${Date.now()}`;
@@ -186,14 +182,13 @@ function fetchGViz(sheetId, sheetName){
       let cols=(json.table?.cols||[]).map(c=>(c.label||'').toString().trim());
       let rows=(json.table?.rows||[]).map(r=>(r.c||[]).map(c=>c?.v ?? ''));
       const emptyOrGeneric=cols.filter(c=>!c || /^[A-Z]$/.test(c)).length;
-      if(emptyOrGeneric>=Math.ceil(cols.length*0.5) && rows.length){ const header=rows[0].map(v=>(v??'').toString().trim()); cols=header; rows=rows.slice(1); }
+      if(emptyOrGeneric>=Math.ceil(cols.length*0.5) && rows.length){const header=rows[0].map(v=>(v??'').toString().trim()); cols=header; rows=rows.slice(1);}
       resolve({cols,rows});
     }catch(e){reject(e);} };
     script.onerror=()=>{cleanup();reject(new Error(`Error de red GViz ${sheetName}`));};
     script.src=url;document.head.appendChild(script);
   });
 }
-/* CSV por GID */
 async function fetchCSVByGid(sheetId,gid){
   const url=`https://docs.google.com/spreadsheets/d/${sheetId}/export?format=csv&gid=${encodeURIComponent(gid)}&ts=${Date.now()}`;
   const res=await fetch(url,{cache:'no-store'}); if(!res.ok) throw new Error(`CSV ${gid} -> ${res.status}`);
@@ -201,131 +196,135 @@ async function fetchCSVByGid(sheetId,gid){
 }
 function parseCSV(text){
   const rows=[]; let row=[]; let cur=''; let inQ=false;
-  for(let i=0;i<text.length;i++){ const ch=text[i], nx=text[i+1];
+  for(let i=0;i<text.length;i++){const ch=text[i],nx=text[i+1];
     if(inQ){ if(ch==='"'&&nx==='"'){cur+='"';i++;} else if(ch==='"'){inQ=false;} else cur+=ch; }
     else { if(ch==='"'){inQ=true;} else if(ch===','){row.push(cur);cur='';}
       else if(ch==='\n'||ch==='\r'){ if(cur!==''||row.length){row.push(cur);rows.push(row);row=[];cur='';} }
       else cur+=ch; } }
   if(cur!==''||row.length){row.push(cur);rows.push(row);} return rows;
 }
-/* Nombres candidatos por pestaña */
-const NAME_CANDIDATES = {
+const NAME_CANDIDATES={
   asistencia:['Asistencia','asistencia','ASISTENCIA','Lista','Lista de asistencia','Lista de Asistencia'],
   registro:['Registro de trabajos','Registro','Trabajos','Historial','Registro trabajos','Registro_de_trabajos'],
   presets:['Presets','Catálogo','Catalogo','Tareas','Preset','Catálogo de trabajos'],
   puntos:['Puntos','puntos','PUNtos']
 };
-/* Intenta GViz por nombre; si falla y hay GID -> CSV */
 async function loadSheetBlock(sheetId,blockKey,cfg){
   const names=NAME_CANDIDATES[blockKey]||[];
-  for(const n of names){ try{ return await fetchGViz(sheetId,n);}catch(e){} }
+  for(const n of names){try{return await fetchGViz(sheetId,n);}catch(e){}}
   const gid=(cfg.gids||{})[blockKey]||''; if(gid) return await fetchCSVByGid(sheetId,gid);
   throw new Error(`No se encontró la pestaña "${blockKey}" (probados: ${names.join(', ')}) y no hay GID configurado.`);
 }
 
-/* ===== HOME (config) ===== */
+/* ===== HOME ===== */
 let CFG={};
 function loadCfg(){
-  try{ CFG=JSON.parse(localStorage.getItem(LS_KEY)||'{}'); }catch{ CFG={}; }
+  try{CFG=JSON.parse(localStorage.getItem(LS_KEY)||'{}');}catch{CFG={};}
   for(const g of GROUPS){
-    if(!CFG[g.code]) CFG[g.code]={sheetId:'',teacher:'',gids:{asistencia:'',registro:'',presets:'',puntos:''}};
-    CFG[g.code].gids ||= {asistencia:'',registro:'',presets:'',puntos:''}; // <-- agrega puntos
+    if(!CFG[g.code]) CFG[g.code]={sheetId:'',teacher:'',gids:{puntos:'',asistencia:'',registro:'',presets:''}};
+    CFG[g.code].gids ||= {puntos:'',asistencia:'',registro:'',presets:''};
     CFG[g.code].teacher ||= '';
   }
 }
-function saveCfg(){ localStorage.setItem(LS_KEY, JSON.stringify(CFG)); }
+function saveCfg(){localStorage.setItem(LS_KEY, JSON.stringify(CFG));}
 
 function renderHome(){
-  const grid = GROUPS.map(g=>{
+  const grid=GROUPS.map(g=>{
     const ok=!!CFG[g.code].sheetId; const teacher=CFG[g.code].teacher||'(sin asignar)';
     return `<div class="tile" data-code="${g.code}">
       <div class="ico">${g.code}</div>
       <div><div class="name">${g.label}</div>
       <div class="sub">Docente: <b>${teacher}</b><br>${ok?'Hoja configurada':'Sin hoja configurada'}</div></div>
-      <div class="state">${ok?'✅':'⚠️'}</div></div>`;
+      <div class="state">${ok?'✅':'⚠️'}</div>
+    </div>`;
   }).join('');
-  setHTML('grupo-grid', grid);
+  setHTML('grupo-grid',grid);
   for(const el of document.querySelectorAll('.tile')){
-    el.addEventListener('click', ()=>{
+    el.addEventListener('click',()=>{
       const code=el.getAttribute('data-code');
-      if(!CFG[code].sheetId){ alert('Configura primero la URL/ID de este grupo y guarda.'); return; }
+      if(!CFG[code].sheetId){alert('Configura primero la URL/ID de este grupo y guarda.');return;}
       openGroup(code);
     });
   }
 
-  const header = `
-    <thead><tr>
-      <th style="text-align:left;width:110px">Grupo</th>
-      <th style="text-align:left">URL o ID de la hoja</th>
-      <th style="text-align:left;width:220px">Docente</th>
-    </tr></thead>`;
-  const rows = GROUPS.map(g=>{
+  const header=`<thead><tr>
+    <th style="text-align:left;width:110px">Grupo</th>
+    <th style="text-align:left">URL o ID de la hoja</th>
+    <th style="text-align:left;width:260px">Docente</th>
+  </tr></thead>`;
+
+  const rows=GROUPS.map(g=>{
     const cfg=CFG[g.code];
     return `<tr>
-      <td><b>${g.label}</b><div class="hint">GIDs (avanzado):</div>
+      <td>
+        <b>${g.label}</b>
+        <div class="gid-box-title">🧩 Avanzado: GIDs por pestaña</div>
         <div class="cfg-small">
-          <input id="gid-${g.code}-asistencia" placeholder="gid Asistencia" value="${cfg.gids.asistencia||''}">
-          <input id="gid-${g.code}-registro"   placeholder="gid Registro"   value="${cfg.gids.registro||''}">
-          <input id="gid-${g.code}-presets"    placeholder="gid Presets"    value="${cfg.gids.presets||''}">
-          <input id="gid-${g.code}-puntos"     placeholder="gid Puntos"     value="${cfg.gids.puntos||''}">
+          <label class="gid-group">
+            <span class="gid-label">1) <b>Puntos</b> — pega el número de <span class="mono">#gid=…</span></span>
+            <input id="gid-${g.code}-puntos" class="gid-input" placeholder="ej. 123456789" title="Pega solo el número que ves al final de la URL (#gid=…)" value="${cfg.gids.puntos||''}">
+          </label>
+          <label class="gid-group">
+            <span class="gid-label">2) <b>Asistencia</b> — número tras <span class="mono">#gid=…</span></span>
+            <input id="gid-${g.code}-asistencia" class="gid-input" placeholder="ej. 987654321" title="Pega solo el número que ves al final de la URL (#gid=…)" value="${cfg.gids.asistencia||''}">
+          </label>
+          <label class="gid-group">
+            <span class="gid-label">3) <b>Registro de trabajos</b> — número tras <span class="mono">#gid=…</span></span>
+            <input id="gid-${g.code}-registro" class="gid-input" placeholder="ej. 135791357" title="Pega solo el número que ves al final de la URL (#gid=…)" value="${cfg.gids.registro||''}">
+          </label>
+          <label class="gid-group">
+            <span class="gid-label">4) <b>Presets</b> — número tras <span class="mono">#gid=…</span></span>
+            <input id="gid-${g.code}-presets" class="gid-input" placeholder="ej. 246802468" title="Pega solo el número que ves al final de la URL (#gid=…)" value="${cfg.gids.presets||''}">
+          </label>
         </div>
       </td>
-      <td><input id="in-${g.code}-sheet" placeholder="URL o ID de la hoja" value="${cfg.sheetId ? 'https://docs.google.com/spreadsheets/d/'+cfg.sheetId+'/edit' : ''}"/></td>
+      <td><input id="in-${g.code}-sheet" placeholder="URL o ID de la hoja (pega el enlace general)" value="${cfg.sheetId ? 'https://docs.google.com/spreadsheets/d/'+cfg.sheetId+'/edit' : ''}"/></td>
       <td><input id="in-${g.code}-teacher" placeholder="Nombre del docente" value="${cfg.teacher||''}"/></td>
     </tr>`;
   }).join('');
-  setHTML('cfg-table', `${header}<tbody>${rows}</tbody>`);
+
+  setHTML('cfg-table',`${header}<tbody>${rows}</tbody>`);
 }
-$('btn-save').addEventListener('click', ()=>{
+$('btn-save').addEventListener('click',()=>{
   for(const g of GROUPS){
     const vs=$('in-'+g.code+'-sheet').value.trim();
     const vt=$('in-'+g.code+'-teacher').value.trim();
     CFG[g.code].sheetId=extractSheetId(vs);
     CFG[g.code].teacher=vt;
     CFG[g.code].gids={
+      puntos:$('gid-'+g.code+'-puntos').value.trim(),
       asistencia:$('gid-'+g.code+'-asistencia').value.trim(),
       registro:$('gid-'+g.code+'-registro').value.trim(),
-      presets:$('gid-'+g.code+'-presets').value.trim(),
-      puntos:$('gid-'+g.code+'-puntos').value.trim(), // <-- nuevo
+      presets:$('gid-'+g.code+'-presets').value.trim()
     };
   }
   saveCfg(); renderHome(); alert('Configuración guardada.');
 });
-$('btn-clear').addEventListener('click', ()=>{
-  if(confirm('¿Borrar toda la configuración guardada?')){ localStorage.removeItem(LS_KEY); loadCfg(); renderHome(); }
+$('btn-clear').addEventListener('click',()=>{
+  if(confirm('¿Borrar toda la configuración guardada?')){localStorage.removeItem(LS_KEY);loadCfg();renderHome();}
 });
 
 /* ===== GRUPO ===== */
-let CURRENT_GROUP=null, CURRENT_SHEET=null, CURRENT_CFG=null;
-let ALUMNOS=[];
-
-async function loadAlumnos(sheetId, cfg){
+let CURRENT_GROUP=null, CURRENT_SHEET=null, CURRENT_CFG=null; let ALUMNOS=[];
+async function loadAlumnos(sheetId,cfg){
   try{
     const {cols,rows}=await loadSheetBlock(sheetId,'asistencia',cfg);
-    const iNombre=idxOfAnyLoose(cols,['Nombre','Nombre del alumno']),
-          iId=idxOfAnyLoose(cols,['ID','Id','id']);
+    const iNombre=idxOfAnyLoose(cols,['Nombre','Nombre del alumno']), iId=idxOfAnyLoose(cols,['ID','Id','id']);
     const list=rows.map(r=>({nombre:String(r[iNombre]||'').trim(), id:String(r[iId]||'').trim()})).filter(x=>x.nombre||x.id);
-    if(list.length===0) throw new Error('Asistencia vacía');
-    return list;
+    if(list.length===0) throw new Error('Asistencia vacía'); return list;
   }catch(e){
-    // Fallback por Puntos (por nombre o por GID si se configuró)
     const {cols,rows}=await loadSheetBlock(sheetId,'puntos',cfg);
-    const iNombre=idxOfAnyLoose(cols,['Nombre','Nombre del alumno']),
-          iId=idxOfAnyLoose(cols,['ID','Id','id']);
-    const list=rows.map(r=>({nombre:String(r[iNombre]||'').trim(), id:String(r[iId]||'').trim()})).filter(x=>x.nombre||x.id);
-    return list;
+    const iNombre=idxOfAnyLoose(cols,['Nombre','Nombre del alumno']), iId=idxOfAnyLoose(cols,['ID','Id','id']);
+    return rows.map(r=>({nombre:String(r[iNombre]||'').trim(), id:String(r[iId]||'').trim()})).filter(x=>x.nombre||x.id);
   }
 }
 function renderAlumnos(){
   const q=normText($('q-alumno').value);
   const items=ALUMNOS.filter(a=>!q||normText(a.nombre).includes(q)||normText(a.id).includes(q)).sort((a,b)=>a.nombre.localeCompare(b.nombre,'es'));
-  if(items.length===0){ setHTML('alumno-list','<div class="empty">Sin resultados.</div>'); return; }
-  setHTML('alumno-list', items.map(a=>`
-    <div class="row" data-id="${a.id}" data-n="${encodeURIComponent(a.nombre)}">
-      <div>${a.nombre||'(sin nombre)'}</div><div class="id">${a.id||''}</div>
-    </div>`).join(''));
+  if(items.length===0){setHTML('alumno-list','<div class="empty">Sin resultados.</div>');return;}
+  setHTML('alumno-list',items.map(a=>`<div class="row" data-id="${a.id}" data-n="${encodeURIComponent(a.nombre)}"><div>${a.nombre||'(sin nombre)'}</div><div class="id">${a.id||''}</div></div>`).join(''));
   for(const el of document.querySelectorAll('#alumno-list .row')){
-    el.addEventListener('click', ()=>{ const id=el.getAttribute('data-id'); const nombre=decodeURIComponent(el.getAttribute('data-n')); openStudent(CURRENT_SHEET, CURRENT_CFG, {id, nombre}); });
+    el.addEventListener('click',()=>{const id=el.getAttribute('data-id'); const nombre=decodeURIComponent(el.getAttribute('data-n')); openStudent(CURRENT_SHEET, CURRENT_CFG, {id,nombre});});
   }
 }
 function openGroup(code){
@@ -333,21 +332,22 @@ function openGroup(code){
   const label=GROUPS.find(g=>g.code===code).label;
   $('group-title').textContent=`Grupo: ${label}`;
   $('group-teacher').textContent=`Docente: ${CURRENT_CFG.teacher||'(sin asignar)'}`;
-  $('q-alumno').value=''; show('view-group');
-  $('back-to-home').onclick=(e)=>{e.preventDefault(); show('view-home');};
-  $('btn-reload').onclick=async()=>{ ALUMNOS=await loadAlumnos(CURRENT_SHEET, CURRENT_CFG); renderAlumnos(); };
+  $('q-alumno').value='';
+  show('view-group');
+  $('back-to-home').onclick=e=>{e.preventDefault();show('view-home');};
+  $('btn-reload').onclick=async()=>{ALUMNOS=await loadAlumnos(CURRENT_SHEET, CURRENT_CFG); renderAlumnos();};
   $('q-alumno').oninput=renderAlumnos;
   $('btn-diagnose').onclick=()=>diagnoseSheet(CURRENT_SHEET, CURRENT_CFG);
   (async()=>{
     setHTML('alumno-list','<div class="empty">Cargando alumnos…</div>');
-    try{ ALUMNOS=await loadAlumnos(CURRENT_SHEET, CURRENT_CFG); renderAlumnos(); }
-    catch(e){ setHTML('alumno-list',`<div class="empty">No se pudo cargar la lista de alumnos.<br><span class="hint">${e.message}</span></div>`); }
+    try{ALUMNOS=await loadAlumnos(CURRENT_SHEET, CURRENT_CFG); renderAlumnos();}
+    catch(e){setHTML('alumno-list',`<div class="empty">No se pudo cargar la lista de alumnos.<br><span class="hint">${e.message}</span></div>`);}
   })();
 }
 
 /* ===== ALUMNO ===== */
-function claveNoUID(t){ return [normText(t.materia||''), normTrabajo(t.numero||''), normText(t.origen||''), normPagina(t.pagina||''), normDate(t.fechaObjetivo||'')].join('|'); }
-function parseRegistro(cols, rows){
+function claveNoUID(t){return[normText(t.materia||''),normTrabajo(t.numero||''),normText(t.origen||''),normPagina(t.pagina||''),normDate(t.fechaObjetivo||'')].join('|');}
+function parseRegistro(cols,rows){
   const idx=names=>idxOfAnyLoose(cols,names);
   const iUIDE=idx(['UID_ENTREGA','UID ENTREGA','UID Entrega','uid_entrega','uidentrega']);
   const iUIDP=idx(['UID_PRESET','UID PRESET','UID Preset','uid_preset','uidpreset']);
@@ -358,48 +358,27 @@ function parseRegistro(cols, rows){
   const iAtr=idx(['Atraso (días)','Atraso','Retraso','Atraso_dias']);
   const iMom=idx(['Momento']), iNomT=idx(['NombreTrabajo','Nombre Trabajo','Nombre_trabajo']);
   const iOrgS=idx(['OrigenScan','Origen Scan']), iNot=idx(['Notas']);
-
   return rows.map(r=>{
-    const fecha=String(r[iF]??'').trim();
-    const fo=String((iFO>=0?r[iFO]:'')??'').trim()||fecha;
-    const atraso=(()=>{ if(iAtr>=0 && r[iAtr]!=='' && r[iAtr]!=null) return +r[iAtr]||0;
-      const d=new Date(fecha), o=new Date(fo); if(isNaN(+d)||isNaN(+o)) return 0; return Math.max(0, Math.round((d-o)/86400000)); })();
-    return {
-      uidEntrega:String((iUIDE>=0?r[iUIDE]:'')??'').trim(),
-      uidPreset:String((iUIDP>=0?r[iUIDP]:'')??'').trim(),
-      fecha, fechaObjetivo:fo, hora:String((iH>=0?r[iH]:'')??'').trim(),
-      id:String((iID>=0?r[iID]:'')??'').trim(),
-      nombre:String((iN>=0?r[iN]:'')??'').trim(),
-      materia:String((iM>=0?r[iM]:'')??'').trim(),
-      numero:String((iNum>=0?r[iNum]:'')??'').trim(),
-      origen:String((iOri>=0?r[iOri]:'')??'').trim(),
-      pagina:String((iPag>=0?r[iPag]:'')??'').trim(),
-      puntos:+((iPts>=0?r[iPts]:0)??0)||0,
-      atrasoDias:atraso, momento:String((iMom>=0?r[iMom]:'')??'').trim(),
-      nombreTrabajo:String((iNomT>=0?r[iNomT]:'')??'').trim(),
-      origenScan:String((iOrgS>=0?r[iOrgS]:'')??'').trim(),
-      notas:String((iNot>=0?r[iNot]:'')??'').trim(),
-    };
+    const fecha=String(r[iF]??'').trim(); const fo=String((iFO>=0?r[iFO]:'')??'').trim()||fecha;
+    const atraso=(()=>{if(iAtr>=0 && r[iAtr]!=='' && r[iAtr]!=null) return +r[iAtr]||0;
+      const d=new Date(fecha), o=new Date(fo); if(isNaN(+d)||isNaN(+o)) return 0; return Math.max(0, Math.round((d-o)/86400000));})();
+    return { uidEntrega:String((iUIDE>=0?r[iUIDE]:'')??'').trim(), uidPreset:String((iUIDP>=0?r[iUIDP]:'')??'').trim(),
+      fecha, fechaObjetivo:fo, hora:String((iH>=0?r[iH]:'')??'').trim(), id:String((iID>=0?r[iID]:'')??'').trim(),
+      nombre:String((iN>=0?r[iN]:'')??'').trim(), materia:String((iM>=0?r[iM]:'')??'').trim(), numero:String((iNum>=0?r[iNum]:'')??'').trim(),
+      origen:String((iOri>=0?r[iOri]:'')??'').trim(), pagina:String((iPag>=0?r[iPag]:'')??'').trim(),
+      puntos:+((iPts>=0?r[iPts]:0)??0)||0, atrasoDias:atraso, momento:String((iMom>=0?r[iMom]:'')??'').trim(),
+      nombreTrabajo:String((iNomT>=0?r[iNomT]:'')??'').trim(), origenScan:String((iOrgS>=0?r[iOrgS]:'')??'').trim(), notas:String((iNot>=0?r[iNot]:'')??'').trim()};
   });
 }
-function parsePresets(cols, rows){
+function parsePresets(cols,rows){
   const idx=names=>idxOfAnyLoose(cols,names);
   const iUID=idx(['UID_PRESET','UID PRESET','UID Preset','uid_preset','uidpreset']);
-  const iFO=idx(['Fecha objetivo','Fecha Objetivo','Fecha_objetivo']);
-  const iMom=idx(['Momento']), iMat=idx(['Materia']);
-  const iNum=idx(['Nº Trabajo','No. Trabajo','Nº','No','Numero','Número','NumTrabajo']);
-  const iOri=idx(['Origen']), iPag=idx(['Página','Pagina']);
+  const iFO=idx(['Fecha objetivo','Fecha Objetivo','Fecha_objetivo']); const iMom=idx(['Momento']); const iMat=idx(['Materia']);
+  const iNum=idx(['Nº Trabajo','No. Trabajo','Nº','No','Numero','Número','NumTrabajo']); const iOri=idx(['Origen']); const iPag=idx(['Página','Pagina']);
   const iNom=idx(['NombreTrabajo','Nombre Trabajo','Nombre_trabajo']);
-  return rows.map(r=>({
-    uid:String((iUID>=0?r[iUID]:'')??'').trim(),
-    fechaObjetivo:String((iFO>=0?r[iFO]:'')??'').trim(),
-    momento:String((iMom>=0?r[iMom]:'')??'').trim(),
-    materia:String((iMat>=0?r[iMat]:'')??'').trim(),
-    numero:String((iNum>=0?r[iNum]:'')??'').trim(),
-    origen:String((iOri>=0?r[iOri]:'')??'').trim(),
-    pagina:String((iPag>=0?r[iPag]:'')??'').trim(),
-    nombreTrabajo:String((iNom>=0?r[iNom]:'')??'').trim(),
-  })).filter(p=>p.uid);
+  return rows.map(r=>({ uid:String((iUID>=0?r[iUID]:'')??'').trim(), fechaObjetivo:String((iFO>=0?r[iFO]:'')??'').trim(), momento:String((iMom>=0?r[iMom]:'')??'').trim(),
+    materia:String((iMat>=0?r[iMat]:'')??'').trim(), numero:String((iNum>=0?r[iNum]:'')??'').trim(), origen:String((iOri>=0?r[iOri]:'')??'').trim(),
+    pagina:String((iPag>=0?r[iPag]:'')??'').trim(), nombreTrabajo:String((iNom>=0?r[iNom]:'')??'').trim() })).filter(p=>p.uid);
 }
 async function loadAsistenciaResumen(sheetId,cfg,alumnoId){
   try{
@@ -408,7 +387,7 @@ async function loadAsistenciaResumen(sheetId,cfg,alumnoId){
     const row=rows.find(r=>String(r[iId]??'').trim().toLowerCase()===String(alumnoId||'').trim().toLowerCase());
     if(!row) return {asistencias:0,faltas:0,total:0};
     const dateCols=cols.map((c,i)=>(/^\d{4}-\d{2}-\d{2}$/.test(String(c).trim())?i:-1)).filter(i=>i>=0);
-    let presentes=0,total=0; for(const i of dateCols){ const v=row[i]; if(v!==null&&v!==''){ total++; if(String(v).trim()==='1'||v===1||v===1.0) presentes++; } }
+    let presentes=0,total=0; for(const i of dateCols){const v=row[i]; if(v!==null&&v!==''){total++; if(String(v).trim()==='1'||v===1||v===1.0) presentes++;}}
     return {asistencias:presentes,faltas:Math.max(0,total-presentes),total};
   }catch{ return {asistencias:0,faltas:0,total:0}; }
 }
@@ -417,37 +396,27 @@ function renderTrabajoItem(t){
   return `<details><summary><b>${t.materia||'–'}</b> — ${t.numero||'–'} (${t.origen||'–'}${t.pagina?' · p.'+t.pagina:''})${nombreT}${fecha?' · '+fecha:''}</summary>
   <div class="hint">Momento: ${t.momento||'–'} · UID: <span class="mono">${t.uid||'(s/uid)'}</span></div></details>`;
 }
-
 async function openStudent(sheetId,cfg,alumno){
   $('student-title').textContent=`${alumno.nombre} — ${alumno.id||''}`;
   $('student-meta').textContent='Cargando…';
   setHTML('resume-pills',''); setHTML('faltantes',''); setHTML('tarde',''); setHTML('atiempo','');
-  $('back-to-group').onclick=(e)=>{e.preventDefault(); show('view-group');};
+  $('back-to-group').onclick=e=>{e.preventDefault();show('view-group');};
   show('view-student');
   try{
-    let reg={cols:[],rows:[]}; try{ reg=await loadSheetBlock(sheetId,'registro',cfg);}catch(e){}
-    const entregas=parseRegistro(reg.cols, reg.rows).filter(t=>String(t.id||'').trim().toLowerCase()===String(alumno.id||'').trim().toLowerCase());
-    let pres={cols:[],rows:[]}; try{ pres=await loadSheetBlock(sheetId,'presets',cfg);}catch(e){}
+    let reg={cols:[],rows:[]}; try{reg=await loadSheetBlock(sheetId,'registro',cfg);}catch(e){}
+    const entregas=parseRegistro(reg.cols,reg.rows).filter(t=>String(t.id||'').trim().toLowerCase()===String(alumno.id||'').trim().toLowerCase());
+    let pres={cols:[],rows:[]}; try{pres=await loadSheetBlock(sheetId,'presets',cfg);}catch(e){}
     const presets=parsePresets(pres.cols,pres.rows);
-
     const entregasPorUID=new Map(); const clavesEntregas=new Map();
     for(const t of entregas){ if(t.uidPreset) entregasPorUID.set(t.uidPreset,t); else clavesEntregas.set(claveNoUID(t),t); }
-
     const faltantes=[], aTiempo=[], tarde=[];
-    if(presets.length){
-      for(const p of presets){
-        let ent=entregasPorUID.get(p.uid);
-        if(!ent){ const k=[normText(p.materia||''),normTrabajo(p.numero||''),normText(p.origen||''),normPagina(p.pagina||''),normDate(p.fechaObjetivo||'')].join('|'); ent=clavesEntregas.get(k); }
-        if(ent){ (ent.atrasoDias>0? tarde:aTiempo).push({...p}); } else { faltantes.push({...p}); }
-      }
-    }
-
+    if(presets.length){ for(const p of presets){
+      let ent=entregasPorUID.get(p.uid);
+      if(!ent){ const k=[normText(p.materia||''),normTrabajo(p.numero||''),normText(p.origen||''),normPagina(p.pagina||''),normDate(p.fechaObjetivo||'')].join('|'); ent=clavesEntregas.get(k); }
+      if(ent){(ent.atrasoDias>0?tarde:aTiempo).push({...p});} else {faltantes.push({...p});}
+    } }
     const {asistencias,faltas,total}=await loadAsistenciaResumen(sheetId,cfg,alumno.id);
-    setHTML('resume-pills', `
-      <span class="pill bad">Faltantes: ${faltantes.length}</span>
-      <span class="pill warn">Tarde: ${tarde.length}</span>
-      <span class="pill ok">A tiempo: ${aTiempo.length}</span>
-      <span class="pill">Asistencias: ${asistencias}/${total}</span>`);
+    setHTML('resume-pills',`<span class="pill bad">Faltantes: ${faltantes.length}</span><span class="pill warn">Tarde: ${tarde.length}</span><span class="pill ok">A tiempo: ${aTiempo.length}</span><span class="pill">Asistencias: ${asistencias}/${total}</span>`);
     $('student-meta').textContent=`Hoja: ${sheetId}`;
     setHTML('faltantes', faltantes.length? faltantes.map(renderTrabajoItem).join('') : '<div class="empty">Sin faltantes (según Presets).</div>');
     setHTML('tarde', tarde.length? tarde.map(renderTrabajoItem).join('') : '<div class="empty">Sin entregas tarde.</div>');
@@ -464,18 +433,18 @@ async function diagnoseSheet(sheetId,cfg){
     {name:'Asistencia', fn:()=>loadSheetBlock(sheetId,'asistencia',cfg)},
     {name:'Registro de trabajos', fn:()=>loadSheetBlock(sheetId,'registro',cfg)},
     {name:'Presets', fn:()=>loadSheetBlock(sheetId,'presets',cfg)},
-    {name:'Puntos (fallback alumnos)', fn:()=>loadSheetBlock(sheetId,'puntos',cfg)},
+    {name:'Puntos (fallback alumnos)', fn:()=>loadSheetBlock(sheetId,'puntos',cfg)}
   ];
   let msg=`Diagnóstico de hoja ${sheetId}\n(usa GViz por nombre; si falla y hay GID, usa CSV)\n\n`;
   for(const t of tests){
-    try{ const {cols,rows}=await t.fn(); const head=cols.slice(0,8).join(' | '); msg+=`✔ ${t.name}: ${cols.length} columnas, ${rows.length} filas\n    Encabezados: ${head}\n`; }
-    catch(e){ msg+=`✖ ${t.name}: ${e.message}\n`; }
+    try{const {cols,rows}=await t.fn(); const head=cols.slice(0,8).join(' | '); msg+=`✔ ${t.name}: ${cols.length} columnas, ${rows.length} filas\n    Encabezados: ${head}\n`;}
+    catch(e){msg+=`✖ ${t.name}: ${e.message}\n`;}
   }
   alert(msg);
 }
 
 /* ===== INIT ===== */
-loadCfg(); renderHome(); $('back-to-home').onclick=(e)=>{e.preventDefault(); show('view-home');};
+loadCfg(); renderHome(); $('back-to-home').onclick=e=>{e.preventDefault(); show('view-home');};
 </script>
 </body>
 </html>
