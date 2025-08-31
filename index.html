@@ -3,17 +3,19 @@
 <head>
 <meta charset="utf-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1"/>
-<title>Aula Digital QR — Faltantes y Asistencias (Directivo)</title>
+<title>Aula Digital QR — Dirección</title>
 <style>
   :root{
     --bg1:#0b1020; --bg2:#0a0d18; --header-bg:#0b1020cc; --border:#1a2540;
     --card:#121a30; --text:#eaf3ff; --muted:#90a4b4; --accent:#6aa9ff;
     --ghost-bg:#18243d; --input-bg:#0b1326; --input-bd:#24345c;
+    --ok:#0f4636; --mid:#4a3f16; --bad:#4a1c1c;
   }
   [data-theme="light"]{
     --bg1:#f6f8ff; --bg2:#eef2ff; --header-bg:#ffffffcc; --border:#dbe4ff;
     --card:#ffffff; --text:#0b1020; --muted:#5b6b7a; --accent:#2b6bff;
     --ghost-bg:#eef2ff; --input-bg:#ffffff; --input-bd:#c7d2fe;
+    --ok:#dff7ef; --mid:#fff7da; --bad:#ffe3e3;
   }
   *{box-sizing:border-box}
   body{margin:0;font-family:system-ui,-apple-system,Segoe UI,Roboto,Inter,Arial;background:linear-gradient(180deg,var(--bg1),var(--bg2))}
@@ -29,8 +31,7 @@
   main{max-width:1100px;margin:auto;padding:16px}
   .controls{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin:0 0 12px 0}
   .controls .hint{margin-left:6px}
-  .controls input[type="date"]{padding:8px 10px;border-radius:10px;border:1px solid var(--input-bd);background:var(--input-bg);color:var(--text)}
-  .controls select{padding:8px 10px;border-radius:10px;border:1px solid var(--input-bd);background:var(--input-bg);color:var(--text)}
+  .controls input[type="date"], .controls select{padding:8px 10px;border-radius:10px;border:1px solid var(--input-bd);background:var(--input-bg);color:var(--text)}
   .grid{display:grid;grid-template-columns:repeat(2,minmax(280px,1fr));gap:14px}
   @media (min-width:860px){.grid{grid-template-columns:repeat(3,minmax(280px,1fr))}}
   .tile{background:var(--card);border:1px solid var(--border);border-radius:18px;padding:16px;display:flex;gap:12px;cursor:pointer;transition:.2s transform,.2s border-color}
@@ -45,40 +46,60 @@
   table.cfg{width:100%;border-collapse:separate;border-spacing:0 8px}
   table.cfg th, table.cfg td{font-size:14px;color:var(--text);vertical-align:top}
   table.cfg input{width:100%;padding:10px 12px;border-radius:10px;border:1px solid var(--input-bd);background:var(--input-bg);color:var(--text)}
+
   .gid-box-title{margin-top:6px;margin-bottom:4px;font-weight:700;color:var(--text);font-size:13px}
   .cfg-small{display:grid;grid-template-columns:1fr;gap:12px;margin-top:8px}
   @media (min-width:860px){ .cfg-small{grid-template-columns:repeat(2,minmax(280px,1fr));} }
   .gid-group{display:flex;flex-direction:column;gap:6px}
   .gid-label{font-size:12px;color:var(--muted)}
   .gid-input{font-size:16px;padding:12px 14px;border-radius:12px;border:2px solid var(--input-bd);background:var(--input-bg);color:var(--text);font-family:ui-monospace,Consolas,monospace}
-  .view{display:none}
-  .show{display:block}
+
+  .view{display:none}.show{display:block}
   .list{margin-top:12px;background:var(--card);border:1px solid var(--border);border-radius:18px;overflow:hidden}
   .row{display:flex;gap:12px;align-items:center;padding:12px 14px;border-bottom:1px solid #19223f;color:var(--text);cursor:pointer}
   .row:last-child{border-bottom:0}
   .row .id{margin-left:auto;color:#9bb0c5;font-size:12px}
   .search{display:flex;gap:8px;margin:12px 0}
   .search input{flex:1;padding:12px;border-radius:10px;border:1px solid var(--input-bd);background:var(--input-bg);color:var(--text)}
+
   .pill{display:inline-block;padding:4px 8px;border-radius:999px;font-size:12px;margin-right:6px}
-  .pill.ok{background:#0f4636;color:#b6ffe1}
-  .pill.warn{background:#4a3f16;color:#ffeaa7}
-  .pill.bad{background:#4a1c1c;color:#ffd3d3}
+  .pill.ok{background:var(--ok);color:#b6ffe1}
+  .pill.warn{background:var(--mid);color:#ffeaa7}
+  .pill.bad{background:var(--bad);color:#ffd3d3}
+
   .section{margin-top:14px;background:var(--card);border:1px solid var(--border);border-radius:18px;padding:12px}
   .section h4{margin:0 0 8px 0}
   .chips{display:flex;gap:8px;flex-wrap:wrap;margin-top:6px}
   .grid-pct{display:grid;grid-template-columns:repeat(4,minmax(140px,1fr));gap:10px;margin-top:8px}
   @media (max-width:720px){ .grid-pct{grid-template-columns:repeat(2,minmax(140px,1fr));} }
   .card-mini{background:color-mix(in oklab, var(--ghost-bg) 80%, transparent);border:1px solid #203056;border-radius:12px;padding:8px 10px;color:var(--text)}
-  .card-mini .t{font-size:12px;color:var(--muted)}
-  .card-mini .v{font-weight:800;font-size:16px}
+  .card-mini .t{font-size:12px;color:var(--muted)} .card-mini .v{font-weight:800;font-size:16px}
+
+  /* Tarjeta resumen */
+  .summary{display:grid;grid-template-columns:1fr 1fr;gap:12px;border-radius:18px;padding:12px;border:1px solid var(--border)}
+  @media (max-width:720px){.summary{grid-template-columns:1fr}}
+  .risk-low{background:color-mix(in oklab, var(--ok) 25%, transparent)}
+  .risk-med{background:color-mix(in oklab, var(--mid) 25%, transparent)}
+  .risk-high{background:color-mix(in oklab, var(--bad) 25%, transparent)}
+  .summary .k{font-size:12px;color:var(--muted)} .summary .v{font-size:22px;font-weight:900}
+  .spark{width:160px;height:40px}
+  .info-row{display:flex;gap:12px;flex-wrap:wrap}
+  .kv{display:flex;flex-direction:column;gap:2px}
+
   details{background:color-mix(in oklab, var(--ghost-bg) 80%, transparent);border:1px solid #203056;border-radius:12px;padding:8px 10px;margin:8px 0;color:var(--text)}
   summary{cursor:pointer;font-weight:700}
   .hint{color:var(--muted);font-size:12px}
   .empty{padding:12px;color:#9bb0c5}
-  .kbd{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;background:#16213d;border:1px solid #263b6b;border-radius:6px;padding:0 6px}
-  .back{display:inline-flex;gap:8px;align-items:center;color:var(--text);text-decoration:none}
   .mono{font-family:ui-monospace,Consolas,monospace}
   .badge{background:color-mix(in oklab, var(--ghost-bg) 90%, transparent);border:1px solid #2a3b66;border-radius:999px;padding:6px 10px;color:#a7bed7;font-size:12px}
+
+  /* Print: exportar PDF (solo la vista del alumno) */
+  @media print{
+    header, #view-home, #view-group .search, .chips, .hint, .btns-hide-print{display:none!important}
+    body{background:white}
+    main{max-width:none}
+    .section{break-inside:avoid}
+  }
 </style>
 </head>
 <body>
@@ -86,7 +107,7 @@
   <div class="wrap">
     <h1>📘 Aula Digital QR — Faltantes por alumno</h1>
     <div class="right">
-      <span class="badge">GViz + CSV (fallback por GID) · sólo lectura</span>
+      <span class="badge">GViz + CSV · sólo lectura</span>
       <button id="btn-theme" class="ghost small" title="Cambiar tema">🌙 Oscuro</button>
     </div>
   </div>
@@ -95,22 +116,15 @@
 <main>
   <!-- HOME -->
   <section id="view-home" class="view show">
-    <!-- Controles de semana -->
     <div class="controls">
       <span class="hint">Semana:</span>
       <button class="chip ghost" id="kpi-this">Esta semana</button>
       <button class="chip ghost" id="kpi-last">Semana pasada</button>
-      <input type="date" id="kpi-date"/>
-      <button class="small ghost" id="kpi-go">Ir</button>
+      <input type="date" id="kpi-date"/><button class="small ghost" id="kpi-go">Ir</button>
       <span class="hint">· Días esperados:</span>
-      <select id="kpi-days">
-        <option value="5">5</option>
-        <option value="4">4</option>
-        <option value="3">3</option>
-        <option value="2">2</option>
-        <option value="1">1</option>
-        <option value="registered">Días registrados</option>
-      </select>
+      <select id="kpi-days"><option value="5">5</option><option value="4">4</option>
+        <option value="3">3</option><option value="2">2</option><option value="1">1</option>
+        <option value="registered">Días registrados</option></select>
       <span class="hint" id="kpi-week-label"></span>
     </div>
 
@@ -119,22 +133,21 @@
     <div class="panel">
       <h3>⚙️ Configurar hojas por grupo</h3>
       <table class="cfg" id="cfg-table"></table>
-      <div style="display:flex;gap:8px;margin-top:8px">
+      <div class="btns-hide-print" style="display:flex;gap:8px;margin-top:8px">
         <button id="btn-save">Guardar</button>
         <button class="ghost" id="btn-clear">Borrar configuración</button>
       </div>
-      <p class="hint" style="margin-top:8px">
-        🧩 <b>Avanzado: GIDs</b> — pega <b>sólo el número</b> que aparece en la URL tras <span class="mono">#gid=</span> estando en cada pestaña (Puntos, Asistencia, Registro de trabajos, Presets).
-      </p>
+      <p class="hint">🧩 <b>Avanzado: GIDs</b> — pega el número tras <span class="mono">#gid=</span> en cada pestaña.<br/>
+        <b>Nuevo (opcional):</b> puedes añadir GID para <span class="mono">Directorio</span> si tienes una pestaña con datos de contacto.</p>
     </div>
   </section>
 
   <!-- GRUPO -->
   <section id="view-group" class="view">
-    <a class="back" href="#" id="back-to-home">← Volver</a>
+    <a class="btns-hide-print" href="#" id="back-to-home">← Volver</a>
     <h2 id="group-title" style="color:var(--text);margin:8px 0 2px 0"></h2>
     <div id="group-teacher" class="hint" style="margin-bottom:10px"></div>
-    <div class="search">
+    <div class="search btns-hide-print">
       <input id="q-alumno" placeholder="Buscar alumno por nombre o ID…"/>
       <div style="display:flex;gap:8px">
         <button id="btn-reload" class="ghost small">Recargar</button>
@@ -142,17 +155,36 @@
       </div>
     </div>
     <div id="alumno-list" class="list"></div>
-    <p class="hint">Lee: <span class="mono">Asistencia</span> (o GID), <span class="mono">Registro de trabajos</span> (o GID), <span class="mono">Presets</span> (o GID). Fallback de alumnos por <span class="mono">Puntos</span> (o GID).</p>
+    <p class="hint">Lee: <span class="mono">Asistencia</span>, <span class="mono">Registro</span>, <span class="mono">Presets</span>. Fallback: <span class="mono">Puntos</span>.</p>
   </section>
 
   <!-- ALUMNO -->
   <section id="view-student" class="view">
-    <a class="back" href="#" id="back-to-group">← Volver al grupo</a>
+    <a class="btns-hide-print" href="#" id="back-to-group">← Volver al grupo</a>
     <h2 id="student-title" style="color:var(--text);margin:8px 0 2px 0"></h2>
     <div id="student-meta" class="hint"></div>
 
+    <!-- Tarjeta resumen + gráfico + semáforo -->
+    <div id="summary-card" class="summary risk-low" style="margin-top:12px">
+      <div>
+        <div class="info-row">
+          <div class="kv"><div class="k">Cumplimiento general</div><div id="sum-cump" class="v">–</div></div>
+          <div class="kv"><div class="k">Asistencia 30 días</div><div id="sum-asis30" class="v">–</div></div>
+          <div class="kv"><div class="k">Riesgo</div><div id="sum-risk" class="v">–</div></div>
+        </div>
+        <div class="info-row" style="margin-top:8px">
+          <div class="kv"><div class="k">Asistencia semana actual</div><div id="sum-asiswk" class="v">–</div></div>
+          <div class="kv"><div class="k">Comparado con grupo (cumpl./asis)</div><div id="sum-vsgrp" class="v">–</div></div>
+        </div>
+      </div>
+      <div>
+        <svg id="spark" class="spark" viewBox="0 0 160 40" preserveAspectRatio="none"></svg>
+        <div class="hint" id="streak">Racha de inasistencias: –</div>
+      </div>
+    </div>
+
     <div class="section">
-      <h4>Resumen</h4>
+      <h4>Resumen por trimestres</h4>
       <div id="resume-pills"></div>
       <div id="resume-pcts" class="grid-pct"></div>
     </div>
@@ -160,11 +192,16 @@
     <div class="section" id="momentos">
       <h4>Filtro por trimestre</h4>
       <div class="chips" id="moment-chips"></div>
-      <p class="hint">Opciones: <span class="mono">Todo</span>, <span class="mono">Trimestre 1 (M1)</span>, <span class="mono">Trimestre 2 (M2)</span>, <span class="mono">Trimestre 3 (M3)</span>.</p>
+      <p class="hint">Opciones: <span class="mono">Todo</span>, <span class="mono">M1</span>, <span class="mono">M2</span>, <span class="mono">M3</span>.</p>
     </div>
 
     <div class="section">
-      <h4>Faltantes</h4>
+      <h4>Prioridad de regularización (faltantes más urgentes)</h4>
+      <div id="faltantes-urg"></div>
+    </div>
+
+    <div class="section">
+      <h4>Faltantes (todos)</h4>
       <div id="faltantes"></div>
     </div>
 
@@ -178,7 +215,31 @@
       <div id="atiempo"></div>
     </div>
 
-    <p class="hint">Cruce por UID_PRESET. Si falta UID, intenta “clave” (materia+nº+origen+pag[+fecha]).</p>
+    <div class="section">
+      <h4>Comparativa con el grupo</h4>
+      <div id="cmp-grupo" class="grid-pct"></div>
+      <p class="hint">Cumplimiento del grupo: entregas válidas / (presets × nº alumnos). Asistencia del grupo: presentes / total de marcas de los últimos 30 días.</p>
+    </div>
+
+    <div class="section">
+      <h4>Contacto del tutor (opcional)</h4>
+      <div id="contacto"></div>
+      <p class="hint">Se lee de una pestaña llamada <span class="mono">Directorio</span> (o por GID “Directorio”). Columnas sugeridas: <span class="mono">Nombre | ID | Tutor | Teléfono | Email</span>.</p>
+    </div>
+
+    <div class="section">
+      <h4>Acuerdos de la reunión</h4>
+      <div style="display:grid;gap:8px">
+        <input id="nota-resumen" placeholder="Resumen breve (qué se habló)"/>
+        <textarea id="nota-comp" rows="4" placeholder="Compromisos / acciones…"></textarea>
+        <div style="display:flex;gap:8px;align-items:center">
+          <input id="nota-fecha" type="date" />
+          <button id="btn-nota-save">Guardar</button>
+          <button id="btn-nota-print" class="ghost">Exportar PDF</button>
+        </div>
+        <div class="hint">Se guarda localmente en este navegador.</div>
+      </div>
+    </div>
   </section>
 </main>
 
@@ -192,60 +253,37 @@ btnTheme.addEventListener('click',()=>{applyTheme((document.documentElement.getA
 
 /* ===== UTIL ===== */
 const GROUPS=[{code:'1A',label:'1ero A'},{code:'1B',label:'1ero B'},{code:'2A',label:'2do A'},{code:'2B',label:'2do B'},{code:'3A',label:'3ro A'},{code:'3B',label:'3ro B'},{code:'4A',label:'4to A'},{code:'4B',label:'4to B'},{code:'5A',label:'5to A'},{code:'5B',label:'5to B'},{code:'6A',label:'6to A'},{code:'6B',label:'6to B'}];
-const LS_KEY='audqr_sheets_v9';                    // mantiene configuración previa
-const KPI_PREF_KEY='audqr_kpi_pref_v1';            // guarda preferencias de semana
+const LS_KEY='audqr_sheets_v10';           // nueva versión
+const KPI_PREF_KEY='audqr_kpi_pref_v1';
 const stripDiacritics=s=>s.normalize('NFD').replace(/[\u0300-\u036f]/g,'');
 const normText=s=>stripDiacritics(String(s||'').toLowerCase()).replace(/\s+/g,' ').trim();
-const normTrabajo=s=>normText(s).replace(/^trabajo\s*/,'');
-const normPagina=s=>normText(s).replace(/^p\.?\s*/,'');
-const pad=n=>String(n).padStart(2,'0');
-const ymdLocal=d=>`${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
-function normDate(s){
-  const t=String(s||'').trim(); if(!t) return '';
-  const mIso=/^(\d{4}-\d{2}-\d{2})/.exec(t); if(mIso) return mIso[1];
-  const mDMY=/^(\d{1,2})[\/-](\d{1,2})[\/-](\d{4})$/.exec(t);
-  if(mDMY){ const d=new Date(+mDMY[3],mDMY[2]-1,+mDMY[1]); return ymdLocal(d); }
-  const n=Number(t.replace(',','.')); if(!Number.isNaN(n)){ const base=new Date(1899,11,30); const d=new Date(base.getTime()+n*86400000); return ymdLocal(d); }
-  const d=new Date(t); if(!isNaN(+d)) return ymdLocal(d);
-  return '';
-}
+const normTrabajo=s=>normText(s).replace(/^trabajo\s*/,''); const normPagina=s=>normText(s).replace(/^p\.?\s*/,'');
+const pad=n=>String(n).padStart(2,'0'); const ymd=d=>`${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
+function normDate(s){const t=String(s||'').trim(); if(!t)return''; const a=/^(\d{4}-\d{2}-\d{2})/.exec(t); if(a) return a[1];
+  const b=/^(\d{1,2})[\/-](\d{1,2})[\/-](\d{4})$/.exec(t); if(b){const d=new Date(+b[3],b[2]-1,+b[1]); return ymd(d);}
+  const n=Number(t.replace(',','.')); if(!Number.isNaN(n)){const base=new Date(1899,11,30);return ymd(new Date(base.getTime()+n*86400000));}
+  const d=new Date(t); if(!isNaN(+d)) return ymd(d); return'';}
 function extractSheetId(s){if(!s) return ''; const m=String(s).match(/\/spreadsheets\/d\/([a-zA-Z0-9-_]+)/); return m?m[1]:s.trim();}
-function $(id){return document.getElementById(id);}
-function show(id){for(const el of document.querySelectorAll('.view')) el.classList.remove('show'); $(id).classList.add('show');}
+function $(id){return document.getElementById(id);} function show(id){for(const el of document.querySelectorAll('.view')) el.classList.remove('show'); $(id).classList.add('show');}
 function setHTML(id,html){$(id).innerHTML=html;}
-function idxOfAnyLoose(cols,names){const norm=s=>String(s||'').toLowerCase().replace(/[\s_]+/g,'').trim(); const lc=cols.map(c=>norm(c)); for(const k of names){const i=lc.indexOf(norm(k)); if(i>=0) return i;} return -1;}
-const MOM_MAP = { 'M1': 'Trimestre 1', 'M2': 'Trimestre 2', 'M3': 'Trimestre 3' };
-const momLabel = m => { const u=String(m||'').toUpperCase(); return MOM_MAP[u] ? `${MOM_MAP[u]} (${u})` : (m||'–'); };
-const fmtPct=(n,d)=> d>0 ? (Math.round((n/d)*1000)/10)+'%' : '–';
+function idxOfAnyLoose(cols,n){const f=x=>String(x||'').toLowerCase().replace(/[\s_]+/g,'').trim(); const lc=cols.map(c=>f(c)); for(const k of n){const i=lc.indexOf(f(k)); if(i>=0) return i;} return -1;}
+const MOM_MAP={M1:'Trimestre 1',M2:'Trimestre 2',M3:'Trimestre 3'}; const fmtPct=(n,d)=> d>0 ? (Math.round((n/d)*1000)/10)+'%' : '–';
+function mondayOf(d){const day=d.getDay(); const diff=(day===0?-6:1-day); const m=new Date(d); m.setDate(d.getDate()+diff); m.setHours(0,0,0,0); return m;}
+function weekDates(d){const mon=mondayOf(d); const ys=[]; for(let i=0;i<5;i++){const t=new Date(mon); t.setDate(mon.getDate()+i); ys.push(ymd(t));} return ys;}
 
-/* === Heurísticas especiales === */
+/* Heurísticas */
 function findIdColumn(cols, rows){
   let i = idxOfAnyLoose(cols, ['ID','Id','id','Matricula','Matrícula','CURP','No Lista','N Lista','No_Lista','NUA','Numero lista','N° Lista','Lista']);
   if (i >= 0) return i;
-  const maxRows = Math.min(rows.length, 30);
-  const score = new Array(cols.length).fill(0);
-  for (let r = 0; r < maxRows; r++){
-    const row = rows[r] || [];
-    for (let c = 0; c < cols.length; c++){
-      const v = String(row[c] ?? '').trim();
-      if (!v) continue;
-      if (/^ID[A-Z0-9]{4,}$/i.test(v)) score[c] += 3;
-      if (/^[A-Z0-9]{8,}$/.test(v))     score[c] += 1;
-      if (v.length >= 8 && v.length <= 16) score[c] += 0.5;
-    }
-  }
-  let best = -1, bestScore = 0;
-  for (let c = 0; c < score.length; c++){ if (score[c] > bestScore){ bestScore = score[c]; best = c; } }
-  return bestScore > 0 ? best : -1;
+  const maxRows = Math.min(rows.length, 30); const score = new Array(cols.length).fill(0);
+  for (let r = 0; r < maxRows; r++){ const row = rows[r] || [];
+    for (let c = 0; c < cols.length; c++){ const v = String(row[c] ?? '').trim(); if (!v) continue;
+      if (/^ID[A-Z0-9]{4,}$/i.test(v)) score[c]+=3; if (/^[A-Z0-9]{8,}$/.test(v)) score[c]+=1; if (v.length>=8 && v.length<=16) score[c]+=0.5; } }
+  let best=-1,scoreBest=0; for(let c=0;c<score.length;c++){ if(score[c]>scoreBest){scoreBest=score[c]; best=c;} } return scoreBest>0?best:-1;
 }
-function getDateColumns(cols){ return cols.map((c,i)=> normDate(String(c).trim()) ? i : -1).filter(i=>i>=0); }
-function isPresent(v){
-  const s = normText(v); if(!s) return false;
-  if (!Number.isNaN(+s)) return (+s)>0;
-  const s2 = s.replace(/\s+/g,'');
-  if (/^1\(100%?\)$/.test(s2)) return true;
-  return ['x','✓','✔','p','presente','si','sí','s','ok','true','asistio','asistió'].includes(s);
-}
+function getDateColumns(cols){return cols.map((c,i)=> normDate(String(c).trim()) ? i : -1).filter(i=>i>=0);}
+function isPresent(v){const s=normText(v); if(!s) return false; if(!Number.isNaN(+s)) return (+s)>0; const s2=s.replace(/\s+/g,''); if(/^1\(100%?\)$/.test(s2)) return true;
+  return ['x','✓','✔','p','presente','si','sí','s','ok','true','asistio','asistió'].includes(s);}
 
 /* ===== LECTORES ===== */
 let __jsonpSeq=0;
@@ -253,14 +291,13 @@ function fetchGViz(sheetId,sheetName){
   return new Promise((resolve,reject)=>{
     const cb=`__gviz_cb_${Date.now()}_${++__jsonpSeq}`;
     const url=`https://docs.google.com/spreadsheets/d/${sheetId}/gviz/tq?headers=1&tqx=out:json;responseHandler:${cb}&sheet=${encodeURIComponent(sheetName)}&ts=${Date.now()}`;
-    const script=document.createElement('script');
-    let timeout=setTimeout(()=>{cleanup();reject(new Error(`Timeout GViz ${sheetName}`));},12000);
+    const script=document.createElement('script'); let timeout=setTimeout(()=>{cleanup();reject(new Error(`Timeout GViz ${sheetName}`));},12000);
     function cleanup(){clearTimeout(timeout);delete window[cb];if(script.parentNode)script.parentNode.removeChild(script);}
     window[cb]=(json)=>{cleanup();try{
       let cols=(json.table?.cols||[]).map(c=>(c.label||'').toString().trim());
       let rows=(json.table?.rows||[]).map(r=>(r.c||[]).map(c=>c?.v ?? ''));
-      const emptyOrGeneric=cols.filter(c=>!c || /^[A-Z]$/.test(c)).length;
-      if(emptyOrGeneric>=Math.ceil(cols.length*0.5) && rows.length){const header=rows[0].map(v=>(v??'').toString().trim()); cols=header; rows=rows.slice(1);}
+      const empt=cols.filter(c=>!c || /^[A-Z]$/.test(c)).length;
+      if(empt>=Math.ceil(cols.length*0.5) && rows.length){const header=rows[0].map(v=>(v??'').toString().trim()); cols=header; rows=rows.slice(1);}
       resolve({cols,rows});
     }catch(e){reject(e);} };
     script.onerror=()=>{cleanup();reject(new Error(`Error de red GViz ${sheetName}`));};
@@ -281,78 +318,58 @@ function parseCSV(text){
       else cur+=ch; } }
   if(cur!==''||row.length){row.push(cur);rows.push(row);} return rows;
 }
+
 const NAME_CANDIDATES={
   asistencia:['Asistencia','asistencia','ASISTENCIA','Lista','Lista de asistencia','Lista de Asistencia'],
   registro:['Registro de trabajos','Registro','Trabajos','Historial','Registro trabajos','Registro_de_trabajos'],
   presets:['Presets','Catálogo','Catalogo','Tareas','Preset','Catálogo de trabajos'],
-  puntos:['Puntos','puntos','PUNtos']
+  puntos:['Puntos','puntos','PUNtos'],
+  directorio:['Directorio','Contacto','Contactos','Tutor','Tutores']
 };
 async function loadSheetBlock(sheetId,blockKey,cfg){
   const names=NAME_CANDIDATES[blockKey]||[];
   for(const n of names){try{return await fetchGViz(sheetId,n);}catch(e){}}
   const gid=(cfg.gids||{})[blockKey]||''; if(gid) return await fetchCSVByGid(sheetId,gid);
-  throw new Error(`No se encontró la pestaña "${blockKey}" (probados: ${names.join(', ')}) y no hay GID configurado.`);
+  throw new Error(`No se encontró la pestaña "${blockKey}" y no hay GID configurado.`);
 }
 
 /* ===== HOME (config + KPIs) ===== */
 let CFG={};
+let KPI_PREF={mode:'this', date:'', exp:'5'};
 function loadCfg(){
   try{CFG=JSON.parse(localStorage.getItem(LS_KEY)||'{}');}catch{CFG={};}
   for(const g of GROUPS){
-    if(!CFG[g.code]) CFG[g.code]={sheetId:'',teacher:'',gids:{puntos:'',asistencia:'',registro:'',presets:''}};
-    CFG[g.code].gids ||= {puntos:'',asistencia:'',registro:'',presets:''};
+    if(!CFG[g.code]) CFG[g.code]={sheetId:'',teacher:'',gids:{puntos:'',asistencia:'',registro:'',presets:'',directorio:''}};
+    CFG[g.code].gids ||= {puntos:'',asistencia:'',registro:'',presets:'',directorio:''};
     CFG[g.code].teacher ||= '';
   }
 }
 function saveCfg(){localStorage.setItem(LS_KEY, JSON.stringify(CFG));}
-
-// ===== Preferencias de la semana =====
-let KPI_PREF={mode:'this', date:'', exp:'5'}; // mode: this|last|date ; exp: 1..5|registered
-function loadKpiPref(){ try{KPI_PREF=Object.assign(KPI_PREF, JSON.parse(localStorage.getItem(KPI_PREF_KEY)||'{}'));}catch{} }
+function loadKpiPref(){ try{Object.assign(KPI_PREF, JSON.parse(localStorage.getItem(KPI_PREF_KEY)||'{}'));}catch{} }
 function saveKpiPref(){ localStorage.setItem(KPI_PREF_KEY, JSON.stringify(KPI_PREF)); }
-function mondayOf(d){
-  const day=d.getDay(); const diff=(day===0?-6:1-day); const m=new Date(d); m.setDate(d.getDate()+diff); m.setHours(0,0,0,0); return m;
-}
-function getWeekDatesYMD(baseDate){
-  const mon=mondayOf(baseDate); const ys=[]; for(let i=0;i<5;i++){const t=new Date(mon); t.setDate(mon.getDate()+i); ys.push(ymdLocal(t));} return {list:ys, label:`${ys[0]} → ${ys[4]}`};
-}
 
-// Calcula KPI de asistencia semanal del grupo
+function mondayDatesLabel(base){const ys=weekDates(base); return `${ys[0]} → ${ys[4]}`;}
 async function computeGroupWeekAttendance(sheetId, cfg, baseDate, expectedDaysMode){
   try{
     const {cols, rows}=await loadSheetBlock(sheetId,'asistencia',cfg);
-    const {list:week} = getWeekDatesYMD(baseDate);
-    const weekSet=new Set(week);
+    const weekSet=new Set(weekDates(baseDate));
     const dateCols=getDateColumns(cols).filter(i=>weekSet.has(normDate(cols[i])));
-    const students=rows.length;
-    let present=0;
+    const students=rows.length; let present=0;
     for(const r of rows){ for(const i of dateCols){ if(isPresent(r[i])) present++; } }
-    const regDays = dateCols.length;
-    const expDays = (expectedDaysMode==='registered') ? regDays : Math.max(1, Math.min(5, +expectedDaysMode||5));
-    const expectedFullWeek = students * expDays;
-    const pctFull = expectedFullWeek>0 ? Math.round((present/expectedFullWeek)*1000)/10 : 0;
-    return {present, students, regDays, expDays, expectedFullWeek, pctFull};
-  }catch(e){ return null; }
+    const regDays=dateCols.length; const expDays=(expectedDaysMode==='registered')?regDays:Math.max(1,Math.min(5,+expectedDaysMode||5));
+    const expected=students*expDays; const pct=expected>0?Math.round((present/expected)*1000)/10:0;
+    return {present,regDays,expected,pct};
+  }catch{return null;}
 }
 
-// Render de tiles + KPIs
 function renderHome(){
-  // Controles activos
-  document.getElementById('kpi-this').classList.toggle('active', KPI_PREF.mode==='this');
-  document.getElementById('kpi-last').classList.toggle('active', KPI_PREF.mode==='last');
-  document.getElementById('kpi-date').value = KPI_PREF.date || '';
-  document.getElementById('kpi-days').value = KPI_PREF.exp;
+  // controles
+  $('kpi-this').classList.toggle('active',KPI_PREF.mode==='this');
+  $('kpi-last').classList.toggle('active',KPI_PREF.mode==='last');
+  $('kpi-date').value=KPI_PREF.date||''; $('kpi-days').value=KPI_PREF.exp;
+  const base=(KPI_PREF.mode==='last')?new Date(Date.now()-7*864e5):(KPI_PREF.mode==='date'&&KPI_PREF.date?new Date(KPI_PREF.date+'T00:00'):new Date());
+  $('kpi-week-label').textContent='('+mondayDatesLabel(base)+')';
 
-  // Etiqueta de rango
-  const base = (()=>{
-    if(KPI_PREF.mode==='last'){ const d=new Date(); d.setDate(d.getDate()-7); return d; }
-    if(KPI_PREF.mode==='date' && KPI_PREF.date){ return new Date(KPI_PREF.date+'T00:00'); }
-    return new Date();
-  })();
-  const wk = getWeekDatesYMD(base);
-  document.getElementById('kpi-week-label').textContent = `(${wk.label})`;
-
-  // Tarjetas
   const grid=GROUPS.map(g=>{
     const ok=!!CFG[g.code].sheetId; const teacher=CFG[g.code].teacher||'(sin asignar)';
     return `<div class="tile" data-code="${g.code}">
@@ -360,58 +377,31 @@ function renderHome(){
       <div>
         <div class="name">${g.label}</div>
         <div class="sub">Docente: <b>${teacher}</b><br>${ok?'Hoja configurada':'Sin hoja configurada'}</div>
-        ${ok? `<div class="kpi" id="kpi-${g.code}">Asistencia semana: calculando…</div>` : ''}
+        ${ok? `<div class="kpi" id="kpi-${g.code}">Asistencia semana: calculando…</div>`:''}
       </div>
       <div class="state">${ok?'✅':'⚠️'}</div>
-    </div>`;
-  }).join('');
+    </div>`;}).join('');
   setHTML('grupo-grid',grid);
 
-  // Click: abrir grupo
   for(const el of document.querySelectorAll('.tile')){
-    el.addEventListener('click',()=>{
-      const code=el.getAttribute('data-code');
-      if(!CFG[code].sheetId){alert('Configura primero la URL/ID de este grupo y guarda.');return;}
-      openGroup(code);
-    });
+    el.addEventListener('click',()=>{const code=el.getAttribute('data-code'); if(!CFG[code].sheetId){alert('Configura este grupo y guarda.');return;} openGroup(code);});
   }
-
-  // Carga KPIs
   refreshAllKPIs();
 }
 async function refreshAllKPIs(){
-  const base = (()=>{
-    if(KPI_PREF.mode==='last'){ const d=new Date(); d.setDate(d.getDate()-7); return d; }
-    if(KPI_PREF.mode==='date' && KPI_PREF.date){ return new Date(KPI_PREF.date+'T00:00'); }
-    return new Date();
-  })();
+  const base=(KPI_PREF.mode==='last')?new Date(Date.now()-7*864e5):(KPI_PREF.mode==='date'&&KPI_PREF.date?new Date(KPI_PREF.date+'T00:00'):new Date());
   for(const g of GROUPS){
     const cfg=CFG[g.code]; if(!cfg.sheetId) continue;
-    const el=$('kpi-'+g.code); if(!el) continue;
-    el.textContent='Asistencia semana: calculando…';
-    const k = await computeGroupWeekAttendance(cfg.sheetId, cfg, base, KPI_PREF.exp);
-    if(!k){ el.textContent='Asistencia semana: no disponible'; continue; }
-    const pct = isFinite(k.pctFull) ? (Math.round(k.pctFull*10)/10).toFixed(1) : '–';
-    el.textContent = `Asistencia semana: ${k.present}/${k.expectedFullWeek} (${pct}%) · días ${k.regDays}/${k.expDays}`;
+    const el=$('kpi-'+g.code); if(!el) continue; el.textContent='Asistencia semana: calculando…';
+    const k=await computeGroupWeekAttendance(cfg.sheetId,cfg,base,KPI_PREF.exp);
+    el.textContent= k? `Asistencia semana: ${k.present}/${k.expected} (${(k.pct||0).toFixed(1)}%) · días ${k.regDays}/${KPI_PREF.exp==='registered'?k.regDays:KPI_PREF.exp}` : 'Asistencia semana: no disponible';
   }
 }
 
-// Listeners de controles
-document.getElementById('kpi-this').onclick=()=>{KPI_PREF.mode='this'; saveKpiPref(); renderHome();};
-document.getElementById('kpi-last').onclick=()=>{KPI_PREF.mode='last'; saveKpiPref(); renderHome();};
-document.getElementById('kpi-go').onclick=()=>{
-  const val=document.getElementById('kpi-date').value;
-  KPI_PREF.mode='date'; KPI_PREF.date=val; saveKpiPref(); renderHome();
-};
-document.getElementById('kpi-days').onchange=(e)=>{KPI_PREF.exp=e.target.value; saveKpiPref(); refreshAllKPIs();};
-
-/* ===== CONFIG (tabla) ===== */
+/* ===== CONFIG TABLE ===== */
 function buildCfgTable(){
-  const header=`<thead><tr>
-    <th style="text-align:left;width:110px">Grupo</th>
-    <th style="text-align:left">URL o ID de la hoja</th>
-    <th style="text-align:left;width:260px">Docente</th>
-  </tr></thead>`;
+  const header=`<thead><tr><th style="text-align:left;width:110px">Grupo</th>
+    <th style="text-align:left">URL o ID de la hoja</th><th style="text-align:left;width:260px">Docente</th></tr></thead>`;
   const rows=GROUPS.map(g=>{
     const cfg=CFG[g.code];
     return `<tr>
@@ -419,44 +409,34 @@ function buildCfgTable(){
         <b>${g.label}</b>
         <div class="gid-box-title">🧩 Avanzado: GIDs por pestaña</div>
         <div class="cfg-small">
-          <label class="gid-group"><span class="gid-label">1) <b>Puntos</b> — número tras <span class="mono">#gid=…</span></span>
-            <input id="gid-${g.code}-puntos" class="gid-input" placeholder="ej. 123456789" value="${cfg.gids.puntos||''}">
-          </label>
-          <label class="gid-group"><span class="gid-label">2) <b>Asistencia</b> — número tras <span class="mono">#gid=…</span></span>
-            <input id="gid-${g.code}-asistencia" class="gid-input" placeholder="ej. 987654321" value="${cfg.gids.asistencia||''}">
-          </label>
-          <label class="gid-group"><span class="gid-label">3) <b>Registro de trabajos</b> — número tras <span class="mono">#gid=…</span></span>
-            <input id="gid-${g.code}-registro" class="gid-input" placeholder="ej. 135791357" value="${cfg.gids.registro||''}">
-          </label>
-          <label class="gid-group"><span class="gid-label">4) <b>Presets</b> — número tras <span class="mono">#gid=…</span></span>
-            <input id="gid-${g.code}-presets" class="gid-input" placeholder="ej. 246802468" value="${cfg.gids.presets||''}">
-          </label>
+          <label class="gid-group"><span class="gid-label">1) <b>Puntos</b> — #gid=…</span>
+            <input id="gid-${g.code}-puntos" class="gid-input" value="${cfg.gids.puntos||''}"></label>
+          <label class="gid-group"><span class="gid-label">2) <b>Asistencia</b> — #gid=…</span>
+            <input id="gid-${g.code}-asistencia" class="gid-input" value="${cfg.gids.asistencia||''}"></label>
+          <label class="gid-group"><span class="gid-label">3) <b>Registro</b> — #gid=…</span>
+            <input id="gid-${g.code}-registro" class="gid-input" value="${cfg.gids.registro||''}"></label>
+          <label class="gid-group"><span class="gid-label">4) <b>Presets</b> — #gid=…</span>
+            <input id="gid-${g.code}-presets" class="gid-input" value="${cfg.gids.presets||''}"></label>
+          <label class="gid-group"><span class="gid-label">5) <b>Directorio</b> (opcional) — #gid=…</span>
+            <input id="gid-${g.code}-directorio" class="gid-input" value="${cfg.gids.directorio||''}"></label>
         </div>
       </td>
-      <td><input id="in-${g.code}-sheet" placeholder="URL o ID de la hoja (pega el enlace general)" value="${cfg.sheetId ? 'https://docs.google.com/spreadsheets/d/'+cfg.sheetId+'/edit' : ''}"/></td>
+      <td><input id="in-${g.code}-sheet" placeholder="URL o ID…" value="${cfg.sheetId ? 'https://docs.google.com/spreadsheets/d/'+cfg.sheetId+'/edit' : ''}"/></td>
       <td><input id="in-${g.code}-teacher" placeholder="Nombre del docente" value="${cfg.teacher||''}"/></td>
-    </tr>`;
-  }).join('');
+    </tr>`;}).join('');
   setHTML('cfg-table',`${header}<tbody>${rows}</tbody>`);
 }
-document.getElementById('btn-save').addEventListener('click',()=>{
+$('btn-save').addEventListener('click',()=>{
   for(const g of GROUPS){
-    const vs=$('in-'+g.code+'-sheet').value.trim();
-    const vt=$('in-'+g.code+'-teacher').value.trim();
-    CFG[g.code].sheetId=extractSheetId(vs);
-    CFG[g.code].teacher=vt;
-    CFG[g.code].gids={
-      puntos:$('gid-'+g.code+'-puntos').value.trim(),
-      asistencia:$('gid-'+g.code+'-asistencia').value.trim(),
-      registro:$('gid-'+g.code+'-registro').value.trim(),
-      presets:$('gid-'+g.code+'-presets').value.trim()
-    };
+    const vs=$('in-'+g.code+'-sheet').value.trim(), vt=$('in-'+g.code+'-teacher').value.trim();
+    CFG[g.code].sheetId=extractSheetId(vs); CFG[g.code].teacher=vt;
+    CFG[g.code].gids={puntos:$('gid-'+g.code+'-puntos').value.trim(), asistencia:$('gid-'+g.code+'-asistencia').value.trim(),
+      registro:$('gid-'+g.code+'-registro').value.trim(), presets:$('gid-'+g.code+'-presets').value.trim(),
+      directorio:$('gid-'+g.code+'-directorio').value.trim()};
   }
   saveCfg(); buildCfgTable(); renderHome(); alert('Configuración guardada.');
 });
-document.getElementById('btn-clear').addEventListener('click',()=>{
-  if(confirm('¿Borrar toda la configuración guardada?')){localStorage.removeItem(LS_KEY);loadCfg();buildCfgTable();renderHome();}
-});
+$('btn-clear').addEventListener('click',()=>{ if(confirm('¿Borrar configuración?')){localStorage.removeItem(LS_KEY);loadCfg();buildCfgTable();renderHome();} });
 
 /* ===== GRUPO / ALUMNOS ===== */
 let CURRENT_GROUP=null, CURRENT_SHEET=null, CURRENT_CFG=null; let ALUMNOS=[];
@@ -467,7 +447,7 @@ async function loadAlumnos(sheetId,cfg){
     const iId=findIdColumn(cols,rows);
     const list=rows.map(r=>({nombre:String(r[iNombre]||'').trim(), id:(iId>=0? String(r[iId]||'').trim() : '')})).filter(x=>x.nombre||x.id);
     if(list.length===0) throw new Error('Asistencia vacía'); return list;
-  }catch(e){
+  }catch{
     const {cols,rows}=await loadSheetBlock(sheetId,'puntos',cfg);
     const iNombre=idxOfAnyLoose(cols,['Nombre','Nombre del alumno','Alumno','Apellidos y Nombres','Nombre y Apellido']);
     const iId=findIdColumn(cols,rows);
@@ -479,30 +459,21 @@ function renderAlumnos(){
   const items=ALUMNOS.filter(a=>!q||normText(a.nombre).includes(q)||normText(a.id).includes(q)).sort((a,b)=>a.nombre.localeCompare(b.nombre,'es'));
   if(items.length===0){setHTML('alumno-list','<div class="empty">Sin resultados.</div>');return;}
   setHTML('alumno-list',items.map(a=>`<div class="row" data-id="${a.id}" data-n="${encodeURIComponent(a.nombre)}"><div>${a.nombre||'(sin nombre)'}</div><div class="id">${a.id||''}</div></div>`).join(''));
-  for(const el of document.querySelectorAll('#alumno-list .row')){
-    el.addEventListener('click',()=>{const id=el.getAttribute('data-id'); const nombre=decodeURIComponent(el.getAttribute('data-n')); openStudent(CURRENT_SHEET, CURRENT_CFG, {id,nombre});});
-  }
+  for(const el of document.querySelectorAll('#alumno-list .row')){ el.addEventListener('click',()=>{openStudent(CURRENT_SHEET, CURRENT_CFG, {id:el.getAttribute('data-id'), nombre:decodeURIComponent(el.getAttribute('data-n'))});}); }
 }
 function openGroup(code){
   CURRENT_GROUP=code; CURRENT_CFG=CFG[code]; CURRENT_SHEET=CURRENT_CFG.sheetId;
   const label=GROUPS.find(g=>g.code===code).label;
-  $('group-title').textContent=`Grupo: ${label}`;
-  $('group-teacher').textContent=`Docente: ${CURRENT_CFG.teacher||'(sin asignar)'}`;
-  $('q-alumno').value='';
-  show('view-group');
+  $('group-title').textContent=`Grupo: ${label}`; $('group-teacher').textContent=`Docente: ${CURRENT_CFG.teacher||'(sin asignar)'}`;
+  $('q-alumno').value=''; show('view-group');
   $('back-to-home').onclick=e=>{e.preventDefault();show('view-home');};
   $('btn-reload').onclick=async()=>{ALUMNOS=await loadAlumnos(CURRENT_SHEET, CURRENT_CFG); renderAlumnos();};
-  $('q-alumno').oninput=renderAlumnos;
-  $('btn-diagnose').onclick=()=>diagnoseSheet(CURRENT_SHEET, CURRENT_CFG);
-  (async()=>{
-    setHTML('alumno-list','<div class="empty">Cargando alumnos…</div>');
-    try{ALUMNOS=await loadAlumnos(CURRENT_SHEET, CURRENT_CFG); renderAlumnos();}
-    catch(e){setHTML('alumno-list',`<div class="empty">No se pudo cargar la lista de alumnos.<br><span class="hint">${e.message}</span></div>`);}
-  })();
+  $('q-alumno').oninput=renderAlumnos; $('btn-diagnose').onclick=()=>diagnoseSheet(CURRENT_SHEET, CURRENT_CFG);
+  (async()=>{ setHTML('alumno-list','<div class="empty">Cargando alumnos…</div>');
+    try{ALUMNOS=await loadAlumnos(CURRENT_SHEET, CURRENT_CFG); renderAlumnos();}catch(e){setHTML('alumno-list',`<div class="empty">No se pudo cargar.<br><span class="hint">${e.message}</span></div>`);} })();
 }
 
-/* ===== ALUMNO + porcentajes + trimestres ===== */
-function claveNoUID(t){return[normText(t.materia||''),normTrabajo(t.numero||''),normText(t.origen||''),normPagina(t.pagina||''),normDate(t.fechaObjetivo||'')].join('|');}
+/* ===== PARSERS ===== */
 function parseRegistro(cols,rows){
   const idx=names=>idxOfAnyLoose(cols,names);
   const iUIDE=idx(['UID_ENTREGA','UID ENTREGA','UID Entrega','uid_entrega','uidentrega']);
@@ -510,25 +481,20 @@ function parseRegistro(cols,rows){
   const iF=idx(['Fecha']), iFO=idx(['Fecha objetivo','Fecha Objetivo','Fecha_objetivo']), iH=idx(['Hora']);
   const iID=idx(['ID','Id','id','Matricula','Matrícula','CURP','No Lista','N Lista','No_Lista','NUA']);
   const iN=idx(['Nombre','Nombre del alumno','Alumno','Apellidos y Nombres','Nombre y Apellido']);
-  const iM=idx(['Materia']);
-  const iNum=idx(['Nº Trabajo','No. Trabajo','Nº','No','Numero','Número','NumTrabajo']);
-  const iOri=idx(['Origen']), iPag=idx(['Página','Pagina']), iPts=idx(['Puntos']);
-  const iAtr=idx(['Atraso (días)','Atraso','Retraso','Atraso_dias']);
-  const iMom=idx(['Momento']), iNomT=idx(['NombreTrabajo','Nombre Trabajo','Nombre_trabajo']);
-  const iOrgS=idx(['OrigenScan','Origen Scan']), iNot=idx(['Notas']);
+  const iM=idx(['Materia']); const iNum=idx(['Nº Trabajo','No. Trabajo','Nº','No','Numero','Número','NumTrabajo']);
+  const iOri=idx(['Origen']); const iPag=idx(['Página','Pagina']); const iPts=idx(['Puntos']);
+  const iAtr=idx(['Atraso (días)','Atraso','Retraso','Atraso_dias']); const iMom=idx(['Momento']);
+  const iNomT=idx(['NombreTrabajo','Nombre Trabajo','Nombre_trabajo']); const iOrgS=idx(['OrigenScan','Origen Scan']); const iNot=idx(['Notas']);
   return rows.map(r=>{
     const fecha=String(r[iF]??'').trim(); const fo=String((iFO>=0?r[iFO]:'')??'').trim()||fecha;
     const atraso=(()=>{if(iAtr>=0 && r[iAtr]!=='' && r[iAtr]!=null) return +r[iAtr]||0;
       const d=new Date(fecha), o=new Date(fo); if(isNaN(+d)||isNaN(+o)) return 0; return Math.max(0, Math.round((d-o)/86400000));})();
-    return {
-      uidEntrega:String((iUIDE>=0?r[iUIDE]:'')??'').trim(), uidPreset:String((iUIDP>=0?r[iUIDP]:'')??'').trim(),
-      fecha, fechaObjetivo:fo, hora:String((iH>=0?r[iH]:'')??'').trim(),
-      id:String((iID>=0?r[iID]:'')??'').trim(), nombre:String((iN>=0?r[iN]:'')??'').trim(),
-      materia:String((iM>=0?r[iM]:'')??'').trim(), numero:String((iNum>=0?r[iNum]:'')??'').trim(),
+    return { uidEntrega:String((iUIDE>=0?r[iUIDE]:'')??'').trim(), uidPreset:String((iUIDP>=0?r[iUIDP]:'')??'').trim(),
+      fecha, fechaObjetivo:fo, hora:String((iH>=0?r[iH]:'')??'').trim(), id:String((iID>=0?r[iID]:'')??'').trim(),
+      nombre:String((iN>=0?r[iN]:'')??'').trim(), materia:String((iM>=0?r[iM]:'')??'').trim(), numero:String((iNum>=0?r[iNum]:'')??'').trim(),
       origen:String((iOri>=0?r[iOri]:'')??'').trim(), pagina:String((iPag>=0?r[iPag]:'')??'').trim(),
       puntos:+((iPts>=0?r[iPts]:0)??0)||0, atrasoDias:atraso, momento:String((iMom>=0?r[iMom]:'')??'').trim(),
-      nombreTrabajo:String((iNomT>=0?r[iNomT]:'')??'').trim(), origenScan:String((iOrgS>=0?r[iOrgS]:'')??'').trim(), notas:String((iNot>=0?r[iNot]:'')??'').trim()
-    };
+      nombreTrabajo:String((iNomT>=0?r[iNomT]:'')??'').trim(), origenScan:String((iOrgS>=0?r[iOrgS]:'')??'').trim(), notas:String((iNot>=0?r[iNot]:'')??'').trim() };
   });
 }
 function parsePresets(cols,rows){
@@ -537,156 +503,211 @@ function parsePresets(cols,rows){
   const iFO=idx(['Fecha objetivo','Fecha Objetivo','Fecha_objetivo']); const iMom=idx(['Momento']); const iMat=idx(['Materia']);
   const iNum=idx(['Nº Trabajo','No. Trabajo','Nº','No','Numero','Número','NumTrabajo']); const iOri=idx(['Origen']); const iPag=idx(['Página','Pagina']);
   const iNom=idx(['NombreTrabajo','Nombre Trabajo','Nombre_trabajo']);
-  return rows.map(r=>({ uid:String((iUID>=0?r[iUID]:'')??'').trim(), fechaObjetivo:String((iFO>=0?r[iFO]:'')??'').trim(), momento:String((iMom>=0?r[iMom]:'')??'').trim(),
+  return rows.map(r=>({uid:String((iUID>=0?r[iUID]:'')??'').trim(), fechaObjetivo:String((iFO>=0?r[iFO]:'')??'').trim(), momento:String((iMom>=0?r[iMom]:'')??'').trim(),
     materia:String((iMat>=0?r[iMat]:'')??'').trim(), numero:String((iNum>=0?r[iNum]:'')??'').trim(), origen:String((iOri>=0?r[iOri]:'')??'').trim(),
-    pagina:String((iPag>=0?r[iPag]:'')??'').trim(), nombreTrabajo:String((iNom>=0?r[iNom]:'')??'').trim() })).filter(p=>p.uid);
+    pagina:String((iPag>=0?r[iPag]:'')??'').trim(), nombreTrabajo:String((iNom>=0?r[iNom]:'')??'').trim()})).filter(p=>p.uid);
 }
-async function loadAsistenciaResumen(sheetId,cfg,alumnoRef){
-  const ref=(typeof alumnoRef==='object'&&alumnoRef)?alumnoRef:{id:alumnoRef,nombre:''};
-  try{
-    const {cols,rows}=await loadSheetBlock(sheetId,'asistencia',cfg);
-    const iId=findIdColumn(cols,rows); const iNom=idxOfAnyLoose(cols,['Nombre','Nombre del alumno','Alumno','Apellidos y Nombres','Nombre y Apellido']);
-    let row=null;
-    if(iId>=0 && ref.id){ row=rows.find(r=>normText(r[iId])===normText(ref.id)); }
-    if(!row && iNom>=0 && ref.nombre){ row=rows.find(r=>normText(r[iNom])===normText(ref.nombre)); }
-    if(!row) return {asistencias:0,faltas:0,total:0};
-    const dateCols=getDateColumns(cols);
-    let presentes=0,total=0;
-    for(const i of dateCols){ const v=row[i]; if(v!==null && v!==''){ total++; if(isPresent(v)) presentes++; } }
-    return {asistencias:presentes, faltas:Math.max(0,total-presentes), total};
-  }catch{ return {asistencias:0,faltas:0,total:0}; }
-}
-function renderTrabajoItem(t){
-  const fecha=normDate(t.fechaObjetivo)||t.fechaObjetivo||''; 
-  const nombreT=t.nombreTrabajo?` · <i>${t.nombreTrabajo}</i>`:'';
-  const mom = t.momento ? ` · ${momLabel(t.momento)}` : '';
-  return `<details><summary><b>${t.materia||'–'}</b> — ${t.numero||'–'} (${t.origen||'–'}${t.pagina?' · p.'+t.pagina:''})${nombreT}${fecha?' · '+fecha:''}${mom}</summary>
-  <div class="hint">UID: <span class="mono">${t.uid||'(s/uid)'}</span></div></details>`;
-}
-
-/* ===== Estado de alumno + filtro por trimestre ===== */
-let STUDENT_DATA = {faltantes:[], tarde:[], aTiempo:[], alumno:null};
-let MOM_FILTER = 'ALL'; // ALL | M1 | M2 | M3
-
-function setMomentChips(){
-  const el = $('moment-chips');
-  const opts = [
-    {v:'ALL', label:'Todo'},
-    {v:'M1',  label:'Trimestre 1 (M1)'},
-    {v:'M2',  label:'Trimestre 2 (M2)'},
-    {v:'M3',  label:'Trimestre 3 (M3)'},
-  ];
-  el.innerHTML = opts.map(o=>`<button class="chip ${MOM_FILTER===o.v?'active':''}" data-v="${o.v}">${o.label}</button>`).join('');
-  for(const b of el.querySelectorAll('.chip')){
-    b.addEventListener('click', ()=>{
-      MOM_FILTER = b.getAttribute('data-v');
-      setMomentChips();
-      renderStudentSections();
-    });
+function parseDirectorio(cols,rows){
+  const iNom=idxOfAnyLoose(cols,['Nombre','Alumno','Nombre del alumno']);
+  const iId =idxOfAnyLoose(cols,['ID','Id','id','Matricula','Matrícula','CURP','No Lista','Lista']);
+  const iTut=idxOfAnyLoose(cols,['Tutor','Padre/Madre/Tutor','Acudiente']);
+  const iTel=idxOfAnyLoose(cols,['Teléfono','Telefono','Tel']);
+  const iMail=idxOfAnyLoose(cols,['Email','Correo','e-mail','Mail']);
+  const map=new Map();
+  for(const r of rows){
+    const obj={nombre:String(r[iNom]||'').trim(), id:String(r[iId]||'').trim(), tutor:String(r[iTut]||'').trim(), tel:String(r[iTel]||'').trim(), mail:String(r[iMail]||'').trim()};
+    if(obj.id) map.set(normText(obj.id), obj);
+    if(obj.nombre) map.set(normText(obj.nombre), Object.assign({},obj,{_byName:true}));
   }
+  return map;
 }
-function applyMomentFilter(list){
-  if(MOM_FILTER==='ALL') return list;
-  const t = MOM_FILTER;
-  return list.filter(x => String(x.momento||'').toUpperCase()===t);
+
+/* ===== ASISTENCIA CÁLCULOS ===== */
+function asistenciaRangeForStudent(cols,rows,ref,start,end){ // fechas YYYY-MM-DD
+  const iId=findIdColumn(cols,rows); const iNom=idxOfAnyLoose(cols,['Nombre','Nombre del alumno','Alumno','Apellidos y Nombres','Nombre y Apellido']);
+  let row=null; if(iId>=0 && ref.id) row=rows.find(r=>normText(r[iId])===normText(ref.id)); if(!row && iNom>=0 && ref.nombre) row=rows.find(r=>normText(r[iNom])===normText(ref.nombre));
+  if(!row) return {present:0,total:0};
+  const dateCols=getDateColumns(cols).filter(i=>{const d=normDate(cols[i]); return d && d>=start && d<=end;});
+  let present=0,total=0; for(const i of dateCols){ const v=row[i]; if(v!==null && v!==''){ total++; if(isPresent(v)) present++; } }
+  return {present,total};
 }
+function asistenciaRangeForGroup(cols,rows,start,end){
+  const dateCols=getDateColumns(cols).filter(i=>{const d=normDate(cols[i]); return d && d>=start && d<=end;});
+  let present=0,total=0; for(const r of rows){ for(const i of dateCols){ const v=r[i]; if(v!==null && v!==''){ total++; if(isPresent(v)) present++; } } }
+  return {present,total};
+}
+function last4WeeksSeries(cols,rows,ref){
+  const now=new Date(); const series=[]; for(let w=3; w>=0; w--){
+    const base=new Date(now.getFullYear(),now.getMonth(),now.getDate()-7*w);
+    const ds=weekDates(base); const a=asistenciaRangeForStudent(cols,rows,ref,ds[0],ds[4]); const pct=a.total?Math.round((a.present/a.total)*100):0; series.push(pct); }
+  return series;
+}
+function rachaInasistencias(cols,rows,ref){
+  const iId=findIdColumn(cols,rows); const iNom=idxOfAnyLoose(cols,['Nombre','Nombre del alumno','Alumno']); let row=null;
+  if(iId>=0 && ref.id) row=rows.find(r=>normText(r[iId])===normText(ref.id)); if(!row && iNom>=0 && ref.nombre) row=rows.find(r=>normText(r[iNom])===normText(ref.nombre));
+  if(!row) return 0; const dcs=getDateColumns(cols).map(i=>({i,d:normDate(cols[i])})).filter(x=>x.d && x.d<=ymd(new Date())).sort((a,b)=>b.d.localeCompare(a.d));
+  let streak=0; for(const {i} of dcs){const v=row[i]; if(v===null||v==='') continue; if(isPresent(v)) break; streak++;} return streak;
+}
+function drawSpark(elId,values){ // values 0..100
+  const w=160,h=40; const max=100,min=0; const step=w/(values.length-1 || 1);
+  const y=v=> h - ( (v-min)/(max-min) )*h;
+  let d=''; values.forEach((v,i)=>{const x=i*step; const yy=y(v); d+= (i?'L':'M')+x+','+yy+' ';});
+  const circles=values.map((v,i)=>`<circle cx="${i*step}" cy="${y(v)}" r="2"></circle>`).join('');
+  $(elId).innerHTML=`<polyline points="${values.map((v,i)=>`${i*step},${y(v)}`).join(' ')}" fill="none" stroke="currentColor" stroke-width="2" opacity="0.8"/>${circles}`;
+}
+
+/* ===== ALUMNO: ESTADO / RIESGO ===== */
+let STUDENT_DATA={faltantes:[],tarde:[],aTiempo:[],alumno:null};
+let MOM_FILTER='ALL';
+const MOM_MAP2={M1:'Trimestre 1',M2:'Trimestre 2',M3:'Trimestre 3'};
+function setMomentChips(){ const el=$('moment-chips'); const opts=[{v:'ALL',label:'Todo'},{v:'M1',label:'M1'},{v:'M2',label:'M2'},{v:'M3',label:'M3'}];
+  el.innerHTML=opts.map(o=>`<button class="chip ${MOM_FILTER===o.v?'active':''}" data-v="${o.v}">${o.label}</button>`).join('');
+  for(const b of el.querySelectorAll('.chip')) b.addEventListener('click',()=>{MOM_FILTER=b.getAttribute('data-v'); setMomentChips(); renderStudentSections();});
+}
+function applyMomentFilter(list){ if(MOM_FILTER==='ALL') return list; const t=MOM_FILTER; return list.filter(x=>String(x.momento||'').toUpperCase()===t); }
 function buildPctCards(){
-  const all = [...STUDENT_DATA.faltantes, ...STUDENT_DATA.tarde, ...STUDENT_DATA.aTiempo];
-  const deliveredAll = STUDENT_DATA.tarde.length + STUDENT_DATA.aTiempo.length;
-  const make = (tag) => {
-    if(tag==='ALL'){
-      const total = all.length, done = deliveredAll;
-      return {title:'General', pct:fmtPct(done,total), frac:`${done}/${total}`};
-    }else{
-      const mm = tag;
-      const tot = all.filter(x=>String(x.momento||'').toUpperCase()===mm).length;
-      const done = [...STUDENT_DATA.tarde, ...STUDENT_DATA.aTiempo].filter(x=>String(x.momento||'').toUpperCase()===mm).length;
-      return {title:`${MOM_MAP[mm]} (${mm})`, pct:fmtPct(done,tot), frac:`${done}/${tot}`};
-    }
-  };
-  const cards=[make('ALL'), make('M1'), make('M2'), make('M3')];
-  $('resume-pcts').innerHTML = cards.map(c=>`
-    <div class="card-mini">
-      <div class="t">${c.title}</div>
-      <div class="v">${c.pct}</div>
-      <div class="t">${c.frac}</div>
-    </div>`).join('');
+  const all=[...STUDENT_DATA.faltantes, ...STUDENT_DATA.tarde, ...STUDENT_DATA.aTiempo];
+  const delivered=STUDENT_DATA.tarde.length+STUDENT_DATA.aTiempo.length;
+  const make=tag=>{ if(tag==='ALL'){return {title:'General',pct:fmtPct(delivered,all.length),frac:`${delivered}/${all.length}`};}
+    const mm=tag; const tot=all.filter(x=>String(x.momento||'').toUpperCase()===mm).length;
+    const done=[...STUDENT_DATA.tarde,...STUDENT_DATA.aTiempo].filter(x=>String(x.momento||'').toUpperCase()===mm).length;
+    return {title:`${MOM_MAP2[mm]} (${mm})`, pct:fmtPct(done,tot), frac:`${done}/${tot}`}; };
+  const cards=[make('ALL'),make('M1'),make('M2'),make('M3')];
+  $('resume-pcts').innerHTML=cards.map(c=>`<div class="card-mini"><div class="t">${c.title}</div><div class="v">${c.pct}</div><div class="t">${c.frac}</div></div>`).join('');
 }
+function renderTrabajoItem(t){ const fecha=normDate(t.fechaObjetivo)||t.fechaObjetivo||''; const mom=t.momento?` · ${MOM_MAP2[t.momento]||t.momento}`:''; const nom=t.nombreTrabajo?` · <i>${t.nombreTrabajo}</i>`:'';
+  return `<details><summary><b>${t.materia||'–'}</b> — ${t.numero||'–'} (${t.origen||'–'}${t.pagina?' · p.'+t.pagina:''})${nom}${fecha?' · '+fecha:''}${mom}</summary>
+  <div class="hint">UID: <span class="mono">${t.uid||'(s/uid)'}</span></div></details>`; }
 function renderStudentSections(){
-  const falt = applyMomentFilter(STUDENT_DATA.faltantes);
-  const tar  = applyMomentFilter(STUDENT_DATA.tarde);
-  const ati  = applyMomentFilter(STUDENT_DATA.aTiempo);
-  const totalFil = falt.length + tar.length + ati.length;
-  const doneFil  = tar.length + ati.length;
-
-  setHTML('resume-pills', `
-    <span class="pill bad">Faltantes: ${falt.length}</span>
-    <span class="pill warn">Tarde: ${tar.length}</span>
-    <span class="pill ok">A tiempo: ${ati.length}</span>
-    <span class="pill">Cumplimiento (filtro): ${doneFil}/${totalFil} · ${fmtPct(doneFil,totalFil)}</span>
-  `);
-
+  const falt=applyMomentFilter(STUDENT_DATA.faltantes), tar=applyMomentFilter(STUDENT_DATA.tarde), ati=applyMomentFilter(STUDENT_DATA.aTiempo);
+  const total=falt.length+tar.length+ati.length, done=tar.length+ati.length;
+  $('resume-pills').innerHTML=`<span class="pill bad">Faltantes: ${falt.length}</span>
+    <span class="pill warn">Tarde: ${tar.length}</span><span class="pill ok">A tiempo: ${ati.length}</span>
+    <span class="pill">Cumplimiento (filtro): ${done}/${total} · ${fmtPct(done,total)}</span>`;
   buildPctCards();
-
-  setHTML('faltantes', falt.length ? falt.map(renderTrabajoItem).join('') : '<div class="empty">Sin faltantes (según filtro).</div>');
-  setHTML('tarde',     tar.length  ? tar.map(renderTrabajoItem).join('')  : '<div class="empty">Sin entregas tarde.</div>');
-  setHTML('atiempo',   ati.length  ? ati.map(renderTrabajoItem).join('')  : '<div class="empty">Sin entregas a tiempo.</div>');
+  setHTML('faltantes', falt.length? falt.map(renderTrabajoItem).join('') : '<div class="empty">Sin faltantes.</div>');
+  setHTML('tarde', tar.length? tar.map(renderTrabajoItem).join('') : '<div class="empty">Sin entregas tarde.</div>');
+  setHTML('atiempo', ati.length? ati.map(renderTrabajoItem).join('') : '<div class="empty">Sin entregas a tiempo.</div>');
+  // Urgentes (orden por fecha objetivo y atraso)
+  const urg=[...STUDENT_DATA.faltantes].map(p=>({p, d: (new Date()-new Date(normDate(p.fechaObjetivo)||p.fechaObjetivo||new Date()))/86400000 }))
+    .sort((a,b)=> (normDate(a.p.fechaObjetivo)||'') .localeCompare(normDate(b.p.fechaObjetivo)||'') || b.d-a.d).map(x=>x.p).slice(0,6);
+  setHTML('faltantes-urg', urg.length? urg.map(renderTrabajoItem).join('') : '<div class="empty">Sin faltantes urgentes.</div>');
 }
 
+/* ===== OPEN STUDENT ===== */
 async function openStudent(sheetId,cfg,alumno){
   $('student-title').textContent=`${alumno.nombre} — ${alumno.id||''}`;
-  $('student-meta').textContent='Cargando…';
-  setHTML('resume-pills',''); setHTML('faltantes',''); setHTML('tarde',''); setHTML('atiempo',''); setHTML('resume-pcts','');
-  $('back-to-group').onclick=e=>{e.preventDefault();show('view-group');};
-  show('view-student');
-  MOM_FILTER = 'ALL';
-  setMomentChips();
+  $('student-meta').textContent='Cargando…'; setHTML('resume-pills',''); setHTML('faltantes',''); setHTML('tarde',''); setHTML('atiempo',''); setHTML('resume-pcts','');
+  $('back-to-group').onclick=e=>{e.preventDefault();show('view-group');}; show('view-student'); MOM_FILTER='ALL'; setMomentChips();
 
   try{
+    // Registro completo (para comparativas de grupo)
     let reg={cols:[],rows:[]}; try{reg=await loadSheetBlock(sheetId,'registro',cfg);}catch(e){}
-    let entregas=parseRegistro(reg.cols,reg.rows);
-    let list=entregas.filter(t=>normText(t.id)===normText(alumno.id));
-    if(!list.length && alumno.nombre){ list=entregas.filter(t=>normText(t.nombre)===normText(alumno.nombre)); }
-    entregas=list;
+    const entregasAll=parseRegistro(reg.cols,reg.rows);
+    let entregasAlumno=entregasAll.filter(t=>normText(t.id)===normText(alumno.id));
+    if(!entregasAlumno.length && alumno.nombre){entregasAlumno=entregasAll.filter(t=>normText(t.nombre)===normText(alumno.nombre));}
 
+    // Presets
     let pres={cols:[],rows:[]}; try{pres=await loadSheetBlock(sheetId,'presets',cfg);}catch(e){}
     const presets=parsePresets(pres.cols,pres.rows);
 
+    // Cruzar entregas ↔ presets
+    const setUids=new Set(presets.map(p=>p.uid));
     const entregasPorUID=new Map(); const clavesEntregas=new Map();
-    for(const t of entregas){ if(t.uidPreset) entregasPorUID.set(t.uidPreset,t); else clavesEntregas.set(claveNoUID(t),t); }
-
+    for(const t of entregasAlumno){ if(t.uidPreset) entregasPorUID.set(t.uidPreset,t); else clavesEntregas.set([normText(t.materia||''),normTrabajo(t.numero||''),normText(t.origen||''),normPagina(t.pagina||''),normDate(t.fechaObjetivo||'')].join('|'),t); }
     const faltantes=[], aTiempo=[], tarde=[];
-    if(presets.length){ for(const p of presets){
+    for(const p of presets){
       let ent=entregasPorUID.get(p.uid);
       if(!ent){ const k=[normText(p.materia||''),normTrabajo(p.numero||''),normText(p.origen||''),normPagina(p.pagina||''),normDate(p.fechaObjetivo||'')].join('|'); ent=clavesEntregas.get(k); }
       if(ent){(ent.atrasoDias>0?tarde:aTiempo).push({...p});} else {faltantes.push({...p});}
-    } }
+    }
+    STUDENT_DATA={faltantes,tarde,aTiempo,alumno}; renderStudentSections();
 
-    STUDENT_DATA = {faltantes, tarde, aTiempo, alumno};
-    renderStudentSections();
+    // ===== Asistencia y comparativas =====
+    const asis=await loadSheetBlock(sheetId,'asistencia',cfg);
+    const today=new Date(); const week=weekDates(today); const d30=ymd(new Date(today.getFullYear(),today.getMonth(),today.getDate()-30));
+    // Alumno
+    const wkA=asistenciaRangeForStudent(asis.cols,asis.rows,alumno,week[0],week[4]);
+    const d30A=asistenciaRangeForStudent(asis.cols,asis.rows,alumno,d30,ymd(today));
+    const pctWk=wkA.total?Math.round((wkA.present/wkA.total)*100):0; const pct30=d30A.total?Math.round((d30A.present/d30A.total)*100):0;
+    // Grupo
+    const d30G=asistenciaRangeForGroup(asis.cols,asis.rows,d30,ymd(today));
+    const pct30G=d30G.total?Math.round((d30G.present/d30G.total)*100):0;
 
-    const {asistencias,faltas,total}=await loadAsistenciaResumen(sheetId,cfg,{id:alumno.id,nombre:alumno.nombre});
-    const pAsis = fmtPct(asistencias,total);
-    $('student-meta').textContent=`Hoja: ${sheetId} · Asistencias: ${asistencias}/${total}${total? ' ('+pAsis+')':''}`;
+    // Cumplimientos
+    const deliveredAlumno=aTiempo.length+tarde.length; const totalPresets=presets.length;
+    const cumpAlumno=totalPresets?Math.round((deliveredAlumno/totalPresets)*100):0;
+    const alumnosCount=ALUMNOS?.length||0;
+    const deliveredGrupo=entregasAll.filter(t=>setUids.has(t.uidPreset)).length; // filas con UID válido
+    const expectedGrupo=alumnosCount*totalPresets;
+    const cumpGrupo=expectedGrupo?Math.round((deliveredGrupo/expectedGrupo)*100):0;
+
+    // Tarjeta resumen + riesgo
+    const risk = (()=>{
+      const faltRatio = totalPresets? faltantes.length/totalPresets : 0;
+      if (faltantes.length>10 || faltRatio>0.2 || pct30<75) return 'high';
+      if (faltantes.length>=5 || pct30<85) return 'med';
+      return 'low';
+    })();
+    const card=$('summary-card'); card.classList.remove('risk-low','risk-med','risk-high'); card.classList.add(risk==='high'?'risk-high':risk==='med'?'risk-med':'risk-low');
+    $('sum-cump').textContent= totalPresets? `${cumpAlumno}% (${deliveredAlumno}/${totalPresets})` : '–';
+    $('sum-asis30').textContent= d30A.total? `${pct30}% (${d30A.present}/${d30A.total})` : '–';
+    $('sum-asiswk').textContent= wkA.total? `${pctWk}% (${wkA.present}/${wkA.total})` : '–';
+    $('sum-vsgrp').textContent= `${cumpAlumno}% / ${pct30}%  vs  ${cumpGrupo}% / ${pct30G}%`;
+    $('sum-risk').textContent= risk==='high'?'ALTO':(risk==='med'?'MEDIO':'BAJO');
+
+    // Sparkline + racha
+    const serie=last4WeeksSeries(asis.cols,asis.rows,alumno); drawSpark('spark',serie);
+    const racha=rachaInasistencias(asis.cols,asis.rows,alumno); $('streak').textContent=`Racha de inasistencias: ${racha} día(s)`;
+
+    // Meta superior
+    $('student-meta').textContent=`Hoja: ${sheetId} · Presets: ${totalPresets} · Entregas: ${deliveredAlumno} (tarde ${tarde.length}) · Faltantes: ${faltantes.length}`;
+
+    // Comparativa con grupo (tarjetas)
+    $('cmp-grupo').innerHTML=[
+      {t:'Cumplimiento', v:`${cumpAlumno}%`, s:`Alumno: ${deliveredAlumno}/${totalPresets} · Grupo: ${cumpGrupo}%`},
+      {t:'Asistencia 30 días', v:`${pct30}%`, s:`Alumno: ${d30A.present}/${d30A.total} · Grupo: ${pct30G}%`}
+    ].map(x=>`<div class="card-mini"><div class="t">${x.t}</div><div class="v">${x.v}</div><div class="t">${x.s}</div></div>`).join('');
+
+    // Contacto (Directorio)
+    let contactoHTML='<div class="empty">Sin datos de contacto.</div>';
+    try{
+      const dir=await loadSheetBlock(sheetId,'directorio',cfg);
+      const map=parseDirectorio(dir.cols,dir.rows);
+      const keyId=normText(alumno.id), keyNom=normText(alumno.nombre);
+      const c= map.get(keyId) || map.get(keyNom);
+      if(c){ contactoHTML=`<div> Tutor: <b>${c.tutor||'–'}</b><br>Tel: ${c.tel?`<a href="tel:${c.tel}">${c.tel}</a>`:'–'} · Email: ${c.mail?`<a href="mailto:${c.mail}">${c.mail}</a>`:'–'}</div>`; }
+    }catch{}
+    $('contacto').innerHTML=contactoHTML;
+
+    // Notas (localStorage)
+    const NOTES_KEY=`audqr_notes_${sheetId}_${normText(alumno.id||alumno.nombre)}`;
+    const notas=JSON.parse(localStorage.getItem(NOTES_KEY)||'{}');
+    $('nota-resumen').value=notas.resumen||''; $('nota-comp').value=notas.comp||''; $('nota-fecha').value=notas.fecha||'';
+    $('btn-nota-save').onclick=()=>{ const v={resumen:$('nota-resumen').value, comp:$('nota-comp').value, fecha:$('nota-fecha').value, ts:new Date().toISOString()};
+      localStorage.setItem(NOTES_KEY,JSON.stringify(v)); alert('Acuerdos guardados en este navegador.'); };
+    $('btn-nota-print').onclick=()=>{ window.print(); };
+
   }catch(e){
-    $('student-meta').textContent='Error al cargar datos.';
-    setHTML('faltantes',`<div class="empty">No se pudieron leer los datos.<br><span class="hint">${e.message}</span></div>`); setHTML('tarde',''); setHTML('atiempo','');
+    $('student-meta').textContent='Error al cargar datos.'; setHTML('faltantes',`<div class="empty">No se pudo leer.<br><span class="hint">${e.message}</span></div>`);
   }
 }
 
+/* ===== KPI controls ===== */
+document.getElementById('kpi-this').onclick=()=>{KPI_PREF.mode='this'; saveKpiPref(); renderHome();};
+document.getElementById('kpi-last').onclick=()=>{KPI_PREF.mode='last'; saveKpiPref(); renderHome();};
+document.getElementById('kpi-go').onclick=()=>{KPI_PREF.mode='date'; KPI_PREF.date=$('kpi-date').value; saveKpiPref(); renderHome();};
+document.getElementById('kpi-days').onchange=e=>{KPI_PREF.exp=e.target.value; saveKpiPref(); refreshAllKPIs();};
+
 /* ===== Diagnóstico ===== */
 async function diagnoseSheet(sheetId,cfg){
-  const tests=[
-    {name:'Asistencia', fn:()=>loadSheetBlock(sheetId,'asistencia',cfg)},
-    {name:'Registro de trabajos', fn:()=>loadSheetBlock(sheetId,'registro',cfg)},
-    {name:'Presets', fn:()=>loadSheetBlock(sheetId,'presets',cfg)},
-    {name:'Puntos (fallback alumnos)', fn:()=>loadSheetBlock(sheetId,'puntos',cfg)}
-  ];
-  let msg=`Diagnóstico de hoja ${sheetId}\n(usa GViz por nombre; si falla y hay GID, usa CSV)\n\n`;
-  for(const t of tests){
-    try{const {cols,rows}=await t.fn(); const head=cols.slice(0,8).join(' | '); msg+=`✔ ${t.name}: ${cols.length} columnas, ${rows.length} filas\n    Encabezados: ${head}\n`;}
-    catch(e){msg+=`✖ ${t.name}: ${e.message}\n`;}
-  }
+  const tests=[{name:'Asistencia',fn:()=>loadSheetBlock(sheetId,'asistencia',cfg)},
+    {name:'Registro',fn:()=>loadSheetBlock(sheetId,'registro',cfg)},
+    {name:'Presets',fn:()=>loadSheetBlock(sheetId,'presets',cfg)},
+    {name:'Puntos',fn:()=>loadSheetBlock(sheetId,'puntos',cfg)}];
+  let msg=`Diagnóstico ${sheetId}\n\n`;
+  for(const t of tests){ try{const {cols,rows}=await t.fn(); msg+=`✔ ${t.name}: ${cols.length} cols, ${rows.length} filas\n`; }
+    catch(e){ msg+=`✖ ${t.name}: ${e.message}\n`; } }
   alert(msg);
 }
 
