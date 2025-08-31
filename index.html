@@ -6,10 +6,14 @@
 <title>Aula Digital QR — Faltantes y Asistencias (Directivo)</title>
 <style>
   :root{
-    --bg1:#0b1020; --bg2:#0a0d18; --header-bg:#0b1020cc; --border:#1a2540; --card:#121a30; --text:#eaf3ff; --muted:#90a4b4; --accent:#6aa9ff; --ghost-bg:#18243d; --input-bg:#0b1326; --input-bd:#24345c;
+    --bg1:#0b1020; --bg2:#0a0d18; --header-bg:#0b1020cc; --border:#1a2540;
+    --card:#121a30; --text:#eaf3ff; --muted:#90a4b4; --accent:#6aa9ff;
+    --ghost-bg:#18243d; --input-bg:#0b1326; --input-bd:#24345c;
   }
   [data-theme="light"]{
-    --bg1:#f6f8ff; --bg2:#eef2ff; --header-bg:#ffffffcc; --border:#dbe4ff; --card:#ffffff; --text:#0b1020; --muted:#5b6b7a; --accent:#2b6bff; --ghost-bg:#eef2ff; --input-bg:#ffffff; --input-bd:#c7d2fe;
+    --bg1:#f6f8ff; --bg2:#eef2ff; --header-bg:#ffffffcc; --border:#dbe4ff;
+    --card:#ffffff; --text:#0b1020; --muted:#5b6b7a; --accent:#2b6bff;
+    --ghost-bg:#eef2ff; --input-bg:#ffffff; --input-bd:#c7d2fe;
   }
   *{box-sizing:border-box}
   body{margin:0;font-family:system-ui,-apple-system,Segoe UI,Roboto,Inter,Arial;background:linear-gradient(180deg,var(--bg1),var(--bg2))}
@@ -41,13 +45,8 @@
   .gid-group{display:flex;flex-direction:column;gap:6px}
   .gid-label{font-size:12px;color:var(--muted)}
   .gid-input{
-    font-size:16px; /* más grande */
-    padding:12px 14px; /* más alto */
-    border-radius:12px;
-    border:2px solid var(--input-bd);
-    background:var(--input-bg);
-    color:var(--text);
-    font-family:ui-monospace,Consolas,monospace; /* monoespaciado */
+    font-size:16px; padding:12px 14px; border-radius:12px; border:2px solid var(--input-bd);
+    background:var(--input-bg); color:var(--text); font-family:ui-monospace,Consolas,monospace;
   }
   .view{display:none}
   .show{display:block}
@@ -157,17 +156,55 @@ btnTheme.addEventListener('click',()=>{applyTheme((document.documentElement.getA
 
 /* ===== UTIL ===== */
 const GROUPS=[{code:'1A',label:'1ero A'},{code:'1B',label:'1ero B'},{code:'2A',label:'2do A'},{code:'2B',label:'2do B'},{code:'3A',label:'3ro A'},{code:'3B',label:'3ro B'},{code:'4A',label:'4to A'},{code:'4B',label:'4to B'},{code:'5A',label:'5to A'},{code:'5B',label:'5to B'},{code:'6A',label:'6to A'},{code:'6B',label:'6to B'}];
-const LS_KEY='audqr_sheets_v5';
+const LS_KEY='audqr_sheets_v6';
 const stripDiacritics=s=>s.normalize('NFD').replace(/[\u0300-\u036f]/g,'');
 const normText=s=>stripDiacritics(String(s||'').toLowerCase()).replace(/\s+/g,' ').trim();
 const normTrabajo=s=>normText(s).replace(/^trabajo\s*/,'');
 const normPagina=s=>normText(s).replace(/^p\.?\s*/,'');
-function normDate(s){const t=String(s||'').trim(); if(!t) return ''; const mIso=/^(\d{4}-\d{2}-\d{2})/.exec(t); if(mIso) return mIso[1]; const mDMY=/^(\d{1,2})[\/-](\d{1,2})[\/-](\d{4})$/.exec(t); if(mDMY){const d=new Date(+mDMY[3],mDMY[2]-1,+mDMY[1]); return d.toISOString().slice(0,10);} const n=Number(t.replace(',','.')); if(!Number.isNaN(n)){const base=new Date(1899,11,30); const d=new Date(base.getTime()+n*86400000); return d.toISOString().slice(0,10);} const d=new Date(t); if(!isNaN(+d)) return d.toISOString().slice(0,10); return '';}
+function normDate(s){
+  const t=String(s||'').trim(); if(!t) return '';
+  const mIso=/^(\d{4}-\d{2}-\d{2})/.exec(t); if(mIso) return mIso[1];
+  const mDMY=/^(\d{1,2})[\/-](\d{1,2})[\/-](\d{4})$/.exec(t);
+  if(mDMY){ const d=new Date(+mDMY[3],mDMY[2]-1,+mDMY[1]); return d.toISOString().slice(0,10); }
+  const n=Number(t.replace(',','.')); if(!Number.isNaN(n)){ const base=new Date(1899,11,30); const d=new Date(base.getTime()+n*86400000); return d.toISOString().slice(0,10); }
+  const d=new Date(t); if(!isNaN(+d)) return d.toISOString().slice(0,10);
+  return '';
+}
 function extractSheetId(s){if(!s) return ''; const m=String(s).match(/\/spreadsheets\/d\/([a-zA-Z0-9-_]+)/); return m?m[1]:s.trim();}
 function $(id){return document.getElementById(id);}
 function show(id){for(const el of document.querySelectorAll('.view')) el.classList.remove('show'); $(id).classList.add('show');}
 function setHTML(id,html){$(id).innerHTML=html;}
 function idxOfAnyLoose(cols,names){const norm=s=>String(s||'').toLowerCase().replace(/[\s_]+/g,'').trim(); const lc=cols.map(c=>norm(c)); for(const k of names){const i=lc.indexOf(norm(k)); if(i>=0) return i;} return -1;}
+
+/* === Heurísticas especiales para tu estructura === */
+// Detecta la columna de ID aunque el encabezado no sea "ID" (busca valores tipo IDXXXXX)
+function findIdColumn(cols, rows){
+  let i = idxOfAnyLoose(cols, ['ID','Id','id','Matricula','Matrícula','CURP','No Lista','N Lista','No_Lista','NUA','Numero lista','N° Lista','Lista']);
+  if (i >= 0) return i;
+  const maxRows = Math.min(rows.length, 30);
+  const score = new Array(cols.length).fill(0);
+  for (let r = 0; r < maxRows; r++){
+    const row = rows[r] || [];
+    for (let c = 0; c < cols.length; c++){
+      const v = String(row[c] ?? '').trim();
+      if (!v) continue;
+      if (/^ID[A-Z0-9]{4,}$/i.test(v)) score[c] += 3;
+      if (/^[A-Z0-9]{8,}$/.test(v))     score[c] += 1;
+      if (v.length >= 8 && v.length <= 16) score[c] += 0.5;
+    }
+  }
+  let best = -1, bestScore = 0;
+  for (let c = 0; c < score.length; c++){ if (score[c] > bestScore){ bestScore = score[c]; best = c; } }
+  return bestScore > 0 ? best : -1;
+}
+function getDateColumns(cols){ return cols.map((c,i)=> normDate(String(c).trim()) ? i : -1).filter(i=>i>=0); }
+function isPresent(v){
+  const s = normText(v); if(!s) return false;
+  if (!Number.isNaN(+s)) return (+s)>0;
+  const s2 = s.replace(/\s+/g,'');
+  if (/^1\(100%?\)$/.test(s2)) return true;
+  return ['x','✓','✔','p','presente','si','sí','s','ok','true','asistio','asistió'].includes(s);
+}
 
 /* ===== LECTORES ===== */
 let __jsonpSeq=0;
@@ -261,7 +298,7 @@ function renderHome(){
         <div class="gid-box-title">🧩 Avanzado: GIDs por pestaña</div>
         <div class="cfg-small">
           <label class="gid-group">
-            <span class="gid-label">1) <b>Puntos</b> — pega el número de <span class="mono">#gid=…</span></span>
+            <span class="gid-label">1) <b>Puntos</b> — pega el número tras <span class="mono">#gid=…</span></span>
             <input id="gid-${g.code}-puntos" class="gid-input" placeholder="ej. 123456789" title="Pega solo el número que ves al final de la URL (#gid=…)" value="${cfg.gids.puntos||''}">
           </label>
           <label class="gid-group">
@@ -309,13 +346,15 @@ let CURRENT_GROUP=null, CURRENT_SHEET=null, CURRENT_CFG=null; let ALUMNOS=[];
 async function loadAlumnos(sheetId,cfg){
   try{
     const {cols,rows}=await loadSheetBlock(sheetId,'asistencia',cfg);
-    const iNombre=idxOfAnyLoose(cols,['Nombre','Nombre del alumno']), iId=idxOfAnyLoose(cols,['ID','Id','id']);
-    const list=rows.map(r=>({nombre:String(r[iNombre]||'').trim(), id:String(r[iId]||'').trim()})).filter(x=>x.nombre||x.id);
+    const iNombre=idxOfAnyLoose(cols,['Nombre','Nombre del alumno','Alumno','Apellidos y Nombres','Nombre y Apellido']);
+    const iId=findIdColumn(cols,rows);
+    const list=rows.map(r=>({nombre:String(r[iNombre]||'').trim(), id:(iId>=0? String(r[iId]||'').trim() : '')})).filter(x=>x.nombre||x.id);
     if(list.length===0) throw new Error('Asistencia vacía'); return list;
   }catch(e){
     const {cols,rows}=await loadSheetBlock(sheetId,'puntos',cfg);
-    const iNombre=idxOfAnyLoose(cols,['Nombre','Nombre del alumno']), iId=idxOfAnyLoose(cols,['ID','Id','id']);
-    return rows.map(r=>({nombre:String(r[iNombre]||'').trim(), id:String(r[iId]||'').trim()})).filter(x=>x.nombre||x.id);
+    const iNombre=idxOfAnyLoose(cols,['Nombre','Nombre del alumno','Alumno','Apellidos y Nombres','Nombre y Apellido']);
+    const iId=findIdColumn(cols,rows);
+    return rows.map(r=>({nombre:String(r[iNombre]||'').trim(), id:(iId>=0? String(r[iId]||'').trim() : '')})).filter(x=>x.nombre||x.id);
   }
 }
 function renderAlumnos(){
@@ -352,7 +391,9 @@ function parseRegistro(cols,rows){
   const iUIDE=idx(['UID_ENTREGA','UID ENTREGA','UID Entrega','uid_entrega','uidentrega']);
   const iUIDP=idx(['UID_PRESET','UID PRESET','UID Preset','uid_preset','uidpreset']);
   const iF=idx(['Fecha']), iFO=idx(['Fecha objetivo','Fecha Objetivo','Fecha_objetivo']), iH=idx(['Hora']);
-  const iID=idx(['ID','Id','id']), iN=idx(['Nombre','Nombre del alumno']), iM=idx(['Materia']);
+  const iID=idx(['ID','Id','id','Matricula','Matrícula','CURP','No Lista','N Lista','No_Lista','NUA']); // más sinónimos
+  const iN=idx(['Nombre','Nombre del alumno','Alumno','Apellidos y Nombres','Nombre y Apellido']);
+  const iM=idx(['Materia']);
   const iNum=idx(['Nº Trabajo','No. Trabajo','Nº','No','Numero','Número','NumTrabajo']);
   const iOri=idx(['Origen']), iPag=idx(['Página','Pagina']), iPts=idx(['Puntos']);
   const iAtr=idx(['Atraso (días)','Atraso','Retraso','Atraso_dias']);
@@ -362,12 +403,15 @@ function parseRegistro(cols,rows){
     const fecha=String(r[iF]??'').trim(); const fo=String((iFO>=0?r[iFO]:'')??'').trim()||fecha;
     const atraso=(()=>{if(iAtr>=0 && r[iAtr]!=='' && r[iAtr]!=null) return +r[iAtr]||0;
       const d=new Date(fecha), o=new Date(fo); if(isNaN(+d)||isNaN(+o)) return 0; return Math.max(0, Math.round((d-o)/86400000));})();
-    return { uidEntrega:String((iUIDE>=0?r[iUIDE]:'')??'').trim(), uidPreset:String((iUIDP>=0?r[iUIDP]:'')??'').trim(),
-      fecha, fechaObjetivo:fo, hora:String((iH>=0?r[iH]:'')??'').trim(), id:String((iID>=0?r[iID]:'')??'').trim(),
-      nombre:String((iN>=0?r[iN]:'')??'').trim(), materia:String((iM>=0?r[iM]:'')??'').trim(), numero:String((iNum>=0?r[iNum]:'')??'').trim(),
+    return {
+      uidEntrega:String((iUIDE>=0?r[iUIDE]:'')??'').trim(), uidPreset:String((iUIDP>=0?r[iUIDP]:'')??'').trim(),
+      fecha, fechaObjetivo:fo, hora:String((iH>=0?r[iH]:'')??'').trim(),
+      id:String((iID>=0?r[iID]:'')??'').trim(), nombre:String((iN>=0?r[iN]:'')??'').trim(),
+      materia:String((iM>=0?r[iM]:'')??'').trim(), numero:String((iNum>=0?r[iNum]:'')??'').trim(),
       origen:String((iOri>=0?r[iOri]:'')??'').trim(), pagina:String((iPag>=0?r[iPag]:'')??'').trim(),
       puntos:+((iPts>=0?r[iPts]:0)??0)||0, atrasoDias:atraso, momento:String((iMom>=0?r[iMom]:'')??'').trim(),
-      nombreTrabajo:String((iNomT>=0?r[iNomT]:'')??'').trim(), origenScan:String((iOrgS>=0?r[iOrgS]:'')??'').trim(), notas:String((iNot>=0?r[iNot]:'')??'').trim()};
+      nombreTrabajo:String((iNomT>=0?r[iNomT]:'')??'').trim(), origenScan:String((iOrgS>=0?r[iOrgS]:'')??'').trim(), notas:String((iNot>=0?r[iNot]:'')??'').trim()
+    };
   });
 }
 function parsePresets(cols,rows){
@@ -380,15 +424,19 @@ function parsePresets(cols,rows){
     materia:String((iMat>=0?r[iMat]:'')??'').trim(), numero:String((iNum>=0?r[iNum]:'')??'').trim(), origen:String((iOri>=0?r[iOri]:'')??'').trim(),
     pagina:String((iPag>=0?r[iPag]:'')??'').trim(), nombreTrabajo:String((iNom>=0?r[iNom]:'')??'').trim() })).filter(p=>p.uid);
 }
-async function loadAsistenciaResumen(sheetId,cfg,alumnoId){
+async function loadAsistenciaResumen(sheetId,cfg,alumnoRef){
+  const ref=(typeof alumnoRef==='object'&&alumnoRef)?alumnoRef:{id:alumnoRef,nombre:''};
   try{
     const {cols,rows}=await loadSheetBlock(sheetId,'asistencia',cfg);
-    const iId=idxOfAnyLoose(cols,['ID','Id','id']); if(iId<0) return {asistencias:0,faltas:0,total:0};
-    const row=rows.find(r=>String(r[iId]??'').trim().toLowerCase()===String(alumnoId||'').trim().toLowerCase());
+    const iId=findIdColumn(cols,rows); const iNom=idxOfAnyLoose(cols,['Nombre','Nombre del alumno','Alumno','Apellidos y Nombres','Nombre y Apellido']);
+    let row=null;
+    if(iId>=0 && ref.id){ row=rows.find(r=>normText(r[iId])===normText(ref.id)); }
+    if(!row && iNom>=0 && ref.nombre){ row=rows.find(r=>normText(r[iNom])===normText(ref.nombre)); }
     if(!row) return {asistencias:0,faltas:0,total:0};
-    const dateCols=cols.map((c,i)=>(/^\d{4}-\d{2}-\d{2}$/.test(String(c).trim())?i:-1)).filter(i=>i>=0);
-    let presentes=0,total=0; for(const i of dateCols){const v=row[i]; if(v!==null&&v!==''){total++; if(String(v).trim()==='1'||v===1||v===1.0) presentes++;}}
-    return {asistencias:presentes,faltas:Math.max(0,total-presentes),total};
+    const dateCols=getDateColumns(cols);
+    let presentes=0,total=0;
+    for(const i of dateCols){ const v=row[i]; if(v!==null && v!==''){ total++; if(isPresent(v)) presentes++; } }
+    return {asistencias:presentes, faltas:Math.max(0,total-presentes), total};
   }catch{ return {asistencias:0,faltas:0,total:0}; }
 }
 function renderTrabajoItem(t){
@@ -404,18 +452,25 @@ async function openStudent(sheetId,cfg,alumno){
   show('view-student');
   try{
     let reg={cols:[],rows:[]}; try{reg=await loadSheetBlock(sheetId,'registro',cfg);}catch(e){}
-    const entregas=parseRegistro(reg.cols,reg.rows).filter(t=>String(t.id||'').trim().toLowerCase()===String(alumno.id||'').trim().toLowerCase());
+    let entregas=parseRegistro(reg.cols,reg.rows);
+    let list=entregas.filter(t=>normText(t.id)===normText(alumno.id));
+    if(!list.length && alumno.nombre){ list=entregas.filter(t=>normText(t.nombre)===normText(alumno.nombre)); }
+    entregas=list;
+
     let pres={cols:[],rows:[]}; try{pres=await loadSheetBlock(sheetId,'presets',cfg);}catch(e){}
     const presets=parsePresets(pres.cols,pres.rows);
+
     const entregasPorUID=new Map(); const clavesEntregas=new Map();
     for(const t of entregas){ if(t.uidPreset) entregasPorUID.set(t.uidPreset,t); else clavesEntregas.set(claveNoUID(t),t); }
+
     const faltantes=[], aTiempo=[], tarde=[];
     if(presets.length){ for(const p of presets){
       let ent=entregasPorUID.get(p.uid);
       if(!ent){ const k=[normText(p.materia||''),normTrabajo(p.numero||''),normText(p.origen||''),normPagina(p.pagina||''),normDate(p.fechaObjetivo||'')].join('|'); ent=clavesEntregas.get(k); }
       if(ent){(ent.atrasoDias>0?tarde:aTiempo).push({...p});} else {faltantes.push({...p});}
     } }
-    const {asistencias,faltas,total}=await loadAsistenciaResumen(sheetId,cfg,alumno.id);
+
+    const {asistencias,faltas,total}=await loadAsistenciaResumen(sheetId,cfg,{id:alumno.id,nombre:alumno.nombre});
     setHTML('resume-pills',`<span class="pill bad">Faltantes: ${faltantes.length}</span><span class="pill warn">Tarde: ${tarde.length}</span><span class="pill ok">A tiempo: ${aTiempo.length}</span><span class="pill">Asistencias: ${asistencias}/${total}</span>`);
     $('student-meta').textContent=`Hoja: ${sheetId}`;
     setHTML('faltantes', faltantes.length? faltantes.map(renderTrabajoItem).join('') : '<div class="empty">Sin faltantes (según Presets).</div>');
