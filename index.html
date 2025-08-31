@@ -22,9 +22,15 @@
   header h1{font-size:18px;margin:0;font-weight:700;letter-spacing:.2px}
   header .right{margin-left:auto;display:flex;gap:8px;align-items:center}
   button,.chip{border:0;background:var(--accent);color:#07101f;padding:10px 14px;border-radius:10px;font-weight:700;cursor:pointer}
-  button.ghost{background:var(--ghost-bg);color:var(--text)}
+  button.ghost,.chip.ghost{background:var(--ghost-bg);color:var(--text)}
   button.small{padding:6px 10px;border-radius:8px;font-size:13px}
+  .chip{padding:8px 12px;border-radius:999px;font-size:13px}
+  .chip.active{background:var(--accent);color:#07101f}
   main{max-width:1100px;margin:auto;padding:16px}
+  .controls{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin:0 0 12px 0}
+  .controls .hint{margin-left:6px}
+  .controls input[type="date"]{padding:8px 10px;border-radius:10px;border:1px solid var(--input-bd);background:var(--input-bg);color:var(--text)}
+  .controls select{padding:8px 10px;border-radius:10px;border:1px solid var(--input-bd);background:var(--input-bg);color:var(--text)}
   .grid{display:grid;grid-template-columns:repeat(2,minmax(280px,1fr));gap:14px}
   @media (min-width:860px){.grid{grid-template-columns:repeat(3,minmax(280px,1fr))}}
   .tile{background:var(--card);border:1px solid var(--border);border-radius:18px;padding:16px;display:flex;gap:12px;cursor:pointer;transition:.2s transform,.2s border-color}
@@ -33,21 +39,18 @@
   .tile .name{color:var(--text);font-size:18px;font-weight:800}
   .tile .sub{color:var(--muted);font-size:12px;line-height:1.3}
   .tile .state{margin-left:auto;font-size:12px;color:var(--muted)}
+  .kpi{color:var(--muted);font-size:12px;margin-top:4px}
   .panel{margin-top:18px;background:color-mix(in oklab, var(--card) 90%, transparent);border:1px dashed #2a3b66;border-radius:18px;padding:16px}
   .panel h3{margin:0 0 10px 0;color:var(--text);font-size:16px}
   table.cfg{width:100%;border-collapse:separate;border-spacing:0 8px}
   table.cfg th, table.cfg td{font-size:14px;color:var(--text);vertical-align:top}
   table.cfg input{width:100%;padding:10px 12px;border-radius:10px;border:1px solid var(--input-bd);background:var(--input-bg);color:var(--text)}
-  /* === Avanzado: GIDs === */
   .gid-box-title{margin-top:6px;margin-bottom:4px;font-weight:700;color:var(--text);font-size:13px}
   .cfg-small{display:grid;grid-template-columns:1fr;gap:12px;margin-top:8px}
   @media (min-width:860px){ .cfg-small{grid-template-columns:repeat(2,minmax(280px,1fr));} }
   .gid-group{display:flex;flex-direction:column;gap:6px}
   .gid-label{font-size:12px;color:var(--muted)}
-  .gid-input{
-    font-size:16px; padding:12px 14px; border-radius:12px; border:2px solid var(--input-bd);
-    background:var(--input-bg); color:var(--text); font-family:ui-monospace,Consolas,monospace;
-  }
+  .gid-input{font-size:16px;padding:12px 14px;border-radius:12px;border:2px solid var(--input-bd);background:var(--input-bg);color:var(--text);font-family:ui-monospace,Consolas,monospace}
   .view{display:none}
   .show{display:block}
   .list{margin-top:12px;background:var(--card);border:1px solid var(--border);border-radius:18px;overflow:hidden}
@@ -62,6 +65,12 @@
   .pill.bad{background:#4a1c1c;color:#ffd3d3}
   .section{margin-top:14px;background:var(--card);border:1px solid var(--border);border-radius:18px;padding:12px}
   .section h4{margin:0 0 8px 0}
+  .chips{display:flex;gap:8px;flex-wrap:wrap;margin-top:6px}
+  .grid-pct{display:grid;grid-template-columns:repeat(4,minmax(140px,1fr));gap:10px;margin-top:8px}
+  @media (max-width:720px){ .grid-pct{grid-template-columns:repeat(2,minmax(140px,1fr));} }
+  .card-mini{background:color-mix(in oklab, var(--ghost-bg) 80%, transparent);border:1px solid #203056;border-radius:12px;padding:8px 10px;color:var(--text)}
+  .card-mini .t{font-size:12px;color:var(--muted)}
+  .card-mini .v{font-weight:800;font-size:16px}
   details{background:color-mix(in oklab, var(--ghost-bg) 80%, transparent);border:1px solid #203056;border-radius:12px;padding:8px 10px;margin:8px 0;color:var(--text)}
   summary{cursor:pointer;font-weight:700}
   .hint{color:var(--muted);font-size:12px}
@@ -86,7 +95,27 @@
 <main>
   <!-- HOME -->
   <section id="view-home" class="view show">
+    <!-- Controles de semana -->
+    <div class="controls">
+      <span class="hint">Semana:</span>
+      <button class="chip ghost" id="kpi-this">Esta semana</button>
+      <button class="chip ghost" id="kpi-last">Semana pasada</button>
+      <input type="date" id="kpi-date"/>
+      <button class="small ghost" id="kpi-go">Ir</button>
+      <span class="hint">· Días esperados:</span>
+      <select id="kpi-days">
+        <option value="5">5</option>
+        <option value="4">4</option>
+        <option value="3">3</option>
+        <option value="2">2</option>
+        <option value="1">1</option>
+        <option value="registered">Días registrados</option>
+      </select>
+      <span class="hint" id="kpi-week-label"></span>
+    </div>
+
     <div class="grid" id="grupo-grid"></div>
+
     <div class="panel">
       <h3>⚙️ Configurar hojas por grupo</h3>
       <table class="cfg" id="cfg-table"></table>
@@ -125,6 +154,13 @@
     <div class="section">
       <h4>Resumen</h4>
       <div id="resume-pills"></div>
+      <div id="resume-pcts" class="grid-pct"></div>
+    </div>
+
+    <div class="section" id="momentos">
+      <h4>Filtro por trimestre</h4>
+      <div class="chips" id="moment-chips"></div>
+      <p class="hint">Opciones: <span class="mono">Todo</span>, <span class="mono">Trimestre 1 (M1)</span>, <span class="mono">Trimestre 2 (M2)</span>, <span class="mono">Trimestre 3 (M3)</span>.</p>
     </div>
 
     <div class="section">
@@ -156,18 +192,21 @@ btnTheme.addEventListener('click',()=>{applyTheme((document.documentElement.getA
 
 /* ===== UTIL ===== */
 const GROUPS=[{code:'1A',label:'1ero A'},{code:'1B',label:'1ero B'},{code:'2A',label:'2do A'},{code:'2B',label:'2do B'},{code:'3A',label:'3ro A'},{code:'3B',label:'3ro B'},{code:'4A',label:'4to A'},{code:'4B',label:'4to B'},{code:'5A',label:'5to A'},{code:'5B',label:'5to B'},{code:'6A',label:'6to A'},{code:'6B',label:'6to B'}];
-const LS_KEY='audqr_sheets_v6';
+const LS_KEY='audqr_sheets_v9';                    // mantiene configuración previa
+const KPI_PREF_KEY='audqr_kpi_pref_v1';            // guarda preferencias de semana
 const stripDiacritics=s=>s.normalize('NFD').replace(/[\u0300-\u036f]/g,'');
 const normText=s=>stripDiacritics(String(s||'').toLowerCase()).replace(/\s+/g,' ').trim();
 const normTrabajo=s=>normText(s).replace(/^trabajo\s*/,'');
 const normPagina=s=>normText(s).replace(/^p\.?\s*/,'');
+const pad=n=>String(n).padStart(2,'0');
+const ymdLocal=d=>`${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
 function normDate(s){
   const t=String(s||'').trim(); if(!t) return '';
   const mIso=/^(\d{4}-\d{2}-\d{2})/.exec(t); if(mIso) return mIso[1];
   const mDMY=/^(\d{1,2})[\/-](\d{1,2})[\/-](\d{4})$/.exec(t);
-  if(mDMY){ const d=new Date(+mDMY[3],mDMY[2]-1,+mDMY[1]); return d.toISOString().slice(0,10); }
-  const n=Number(t.replace(',','.')); if(!Number.isNaN(n)){ const base=new Date(1899,11,30); const d=new Date(base.getTime()+n*86400000); return d.toISOString().slice(0,10); }
-  const d=new Date(t); if(!isNaN(+d)) return d.toISOString().slice(0,10);
+  if(mDMY){ const d=new Date(+mDMY[3],mDMY[2]-1,+mDMY[1]); return ymdLocal(d); }
+  const n=Number(t.replace(',','.')); if(!Number.isNaN(n)){ const base=new Date(1899,11,30); const d=new Date(base.getTime()+n*86400000); return ymdLocal(d); }
+  const d=new Date(t); if(!isNaN(+d)) return ymdLocal(d);
   return '';
 }
 function extractSheetId(s){if(!s) return ''; const m=String(s).match(/\/spreadsheets\/d\/([a-zA-Z0-9-_]+)/); return m?m[1]:s.trim();}
@@ -175,9 +214,11 @@ function $(id){return document.getElementById(id);}
 function show(id){for(const el of document.querySelectorAll('.view')) el.classList.remove('show'); $(id).classList.add('show');}
 function setHTML(id,html){$(id).innerHTML=html;}
 function idxOfAnyLoose(cols,names){const norm=s=>String(s||'').toLowerCase().replace(/[\s_]+/g,'').trim(); const lc=cols.map(c=>norm(c)); for(const k of names){const i=lc.indexOf(norm(k)); if(i>=0) return i;} return -1;}
+const MOM_MAP = { 'M1': 'Trimestre 1', 'M2': 'Trimestre 2', 'M3': 'Trimestre 3' };
+const momLabel = m => { const u=String(m||'').toUpperCase(); return MOM_MAP[u] ? `${MOM_MAP[u]} (${u})` : (m||'–'); };
+const fmtPct=(n,d)=> d>0 ? (Math.round((n/d)*1000)/10)+'%' : '–';
 
-/* === Heurísticas especiales para tu estructura === */
-// Detecta la columna de ID aunque el encabezado no sea "ID" (busca valores tipo IDXXXXX)
+/* === Heurísticas especiales === */
 function findIdColumn(cols, rows){
   let i = idxOfAnyLoose(cols, ['ID','Id','id','Matricula','Matrícula','CURP','No Lista','N Lista','No_Lista','NUA','Numero lista','N° Lista','Lista']);
   if (i >= 0) return i;
@@ -253,7 +294,7 @@ async function loadSheetBlock(sheetId,blockKey,cfg){
   throw new Error(`No se encontró la pestaña "${blockKey}" (probados: ${names.join(', ')}) y no hay GID configurado.`);
 }
 
-/* ===== HOME ===== */
+/* ===== HOME (config + KPIs) ===== */
 let CFG={};
 function loadCfg(){
   try{CFG=JSON.parse(localStorage.getItem(LS_KEY)||'{}');}catch{CFG={};}
@@ -265,17 +306,68 @@ function loadCfg(){
 }
 function saveCfg(){localStorage.setItem(LS_KEY, JSON.stringify(CFG));}
 
+// ===== Preferencias de la semana =====
+let KPI_PREF={mode:'this', date:'', exp:'5'}; // mode: this|last|date ; exp: 1..5|registered
+function loadKpiPref(){ try{KPI_PREF=Object.assign(KPI_PREF, JSON.parse(localStorage.getItem(KPI_PREF_KEY)||'{}'));}catch{} }
+function saveKpiPref(){ localStorage.setItem(KPI_PREF_KEY, JSON.stringify(KPI_PREF)); }
+function mondayOf(d){
+  const day=d.getDay(); const diff=(day===0?-6:1-day); const m=new Date(d); m.setDate(d.getDate()+diff); m.setHours(0,0,0,0); return m;
+}
+function getWeekDatesYMD(baseDate){
+  const mon=mondayOf(baseDate); const ys=[]; for(let i=0;i<5;i++){const t=new Date(mon); t.setDate(mon.getDate()+i); ys.push(ymdLocal(t));} return {list:ys, label:`${ys[0]} → ${ys[4]}`};
+}
+
+// Calcula KPI de asistencia semanal del grupo
+async function computeGroupWeekAttendance(sheetId, cfg, baseDate, expectedDaysMode){
+  try{
+    const {cols, rows}=await loadSheetBlock(sheetId,'asistencia',cfg);
+    const {list:week} = getWeekDatesYMD(baseDate);
+    const weekSet=new Set(week);
+    const dateCols=getDateColumns(cols).filter(i=>weekSet.has(normDate(cols[i])));
+    const students=rows.length;
+    let present=0;
+    for(const r of rows){ for(const i of dateCols){ if(isPresent(r[i])) present++; } }
+    const regDays = dateCols.length;
+    const expDays = (expectedDaysMode==='registered') ? regDays : Math.max(1, Math.min(5, +expectedDaysMode||5));
+    const expectedFullWeek = students * expDays;
+    const pctFull = expectedFullWeek>0 ? Math.round((present/expectedFullWeek)*1000)/10 : 0;
+    return {present, students, regDays, expDays, expectedFullWeek, pctFull};
+  }catch(e){ return null; }
+}
+
+// Render de tiles + KPIs
 function renderHome(){
+  // Controles activos
+  document.getElementById('kpi-this').classList.toggle('active', KPI_PREF.mode==='this');
+  document.getElementById('kpi-last').classList.toggle('active', KPI_PREF.mode==='last');
+  document.getElementById('kpi-date').value = KPI_PREF.date || '';
+  document.getElementById('kpi-days').value = KPI_PREF.exp;
+
+  // Etiqueta de rango
+  const base = (()=>{
+    if(KPI_PREF.mode==='last'){ const d=new Date(); d.setDate(d.getDate()-7); return d; }
+    if(KPI_PREF.mode==='date' && KPI_PREF.date){ return new Date(KPI_PREF.date+'T00:00'); }
+    return new Date();
+  })();
+  const wk = getWeekDatesYMD(base);
+  document.getElementById('kpi-week-label').textContent = `(${wk.label})`;
+
+  // Tarjetas
   const grid=GROUPS.map(g=>{
     const ok=!!CFG[g.code].sheetId; const teacher=CFG[g.code].teacher||'(sin asignar)';
     return `<div class="tile" data-code="${g.code}">
       <div class="ico">${g.code}</div>
-      <div><div class="name">${g.label}</div>
-      <div class="sub">Docente: <b>${teacher}</b><br>${ok?'Hoja configurada':'Sin hoja configurada'}</div></div>
+      <div>
+        <div class="name">${g.label}</div>
+        <div class="sub">Docente: <b>${teacher}</b><br>${ok?'Hoja configurada':'Sin hoja configurada'}</div>
+        ${ok? `<div class="kpi" id="kpi-${g.code}">Asistencia semana: calculando…</div>` : ''}
+      </div>
       <div class="state">${ok?'✅':'⚠️'}</div>
     </div>`;
   }).join('');
   setHTML('grupo-grid',grid);
+
+  // Click: abrir grupo
   for(const el of document.querySelectorAll('.tile')){
     el.addEventListener('click',()=>{
       const code=el.getAttribute('data-code');
@@ -284,12 +376,42 @@ function renderHome(){
     });
   }
 
+  // Carga KPIs
+  refreshAllKPIs();
+}
+async function refreshAllKPIs(){
+  const base = (()=>{
+    if(KPI_PREF.mode==='last'){ const d=new Date(); d.setDate(d.getDate()-7); return d; }
+    if(KPI_PREF.mode==='date' && KPI_PREF.date){ return new Date(KPI_PREF.date+'T00:00'); }
+    return new Date();
+  })();
+  for(const g of GROUPS){
+    const cfg=CFG[g.code]; if(!cfg.sheetId) continue;
+    const el=$('kpi-'+g.code); if(!el) continue;
+    el.textContent='Asistencia semana: calculando…';
+    const k = await computeGroupWeekAttendance(cfg.sheetId, cfg, base, KPI_PREF.exp);
+    if(!k){ el.textContent='Asistencia semana: no disponible'; continue; }
+    const pct = isFinite(k.pctFull) ? (Math.round(k.pctFull*10)/10).toFixed(1) : '–';
+    el.textContent = `Asistencia semana: ${k.present}/${k.expectedFullWeek} (${pct}%) · días ${k.regDays}/${k.expDays}`;
+  }
+}
+
+// Listeners de controles
+document.getElementById('kpi-this').onclick=()=>{KPI_PREF.mode='this'; saveKpiPref(); renderHome();};
+document.getElementById('kpi-last').onclick=()=>{KPI_PREF.mode='last'; saveKpiPref(); renderHome();};
+document.getElementById('kpi-go').onclick=()=>{
+  const val=document.getElementById('kpi-date').value;
+  KPI_PREF.mode='date'; KPI_PREF.date=val; saveKpiPref(); renderHome();
+};
+document.getElementById('kpi-days').onchange=(e)=>{KPI_PREF.exp=e.target.value; saveKpiPref(); refreshAllKPIs();};
+
+/* ===== CONFIG (tabla) ===== */
+function buildCfgTable(){
   const header=`<thead><tr>
     <th style="text-align:left;width:110px">Grupo</th>
     <th style="text-align:left">URL o ID de la hoja</th>
     <th style="text-align:left;width:260px">Docente</th>
   </tr></thead>`;
-
   const rows=GROUPS.map(g=>{
     const cfg=CFG[g.code];
     return `<tr>
@@ -297,21 +419,17 @@ function renderHome(){
         <b>${g.label}</b>
         <div class="gid-box-title">🧩 Avanzado: GIDs por pestaña</div>
         <div class="cfg-small">
-          <label class="gid-group">
-            <span class="gid-label">1) <b>Puntos</b> — pega el número tras <span class="mono">#gid=…</span></span>
-            <input id="gid-${g.code}-puntos" class="gid-input" placeholder="ej. 123456789" title="Pega solo el número que ves al final de la URL (#gid=…)" value="${cfg.gids.puntos||''}">
+          <label class="gid-group"><span class="gid-label">1) <b>Puntos</b> — número tras <span class="mono">#gid=…</span></span>
+            <input id="gid-${g.code}-puntos" class="gid-input" placeholder="ej. 123456789" value="${cfg.gids.puntos||''}">
           </label>
-          <label class="gid-group">
-            <span class="gid-label">2) <b>Asistencia</b> — número tras <span class="mono">#gid=…</span></span>
-            <input id="gid-${g.code}-asistencia" class="gid-input" placeholder="ej. 987654321" title="Pega solo el número que ves al final de la URL (#gid=…)" value="${cfg.gids.asistencia||''}">
+          <label class="gid-group"><span class="gid-label">2) <b>Asistencia</b> — número tras <span class="mono">#gid=…</span></span>
+            <input id="gid-${g.code}-asistencia" class="gid-input" placeholder="ej. 987654321" value="${cfg.gids.asistencia||''}">
           </label>
-          <label class="gid-group">
-            <span class="gid-label">3) <b>Registro de trabajos</b> — número tras <span class="mono">#gid=…</span></span>
-            <input id="gid-${g.code}-registro" class="gid-input" placeholder="ej. 135791357" title="Pega solo el número que ves al final de la URL (#gid=…)" value="${cfg.gids.registro||''}">
+          <label class="gid-group"><span class="gid-label">3) <b>Registro de trabajos</b> — número tras <span class="mono">#gid=…</span></span>
+            <input id="gid-${g.code}-registro" class="gid-input" placeholder="ej. 135791357" value="${cfg.gids.registro||''}">
           </label>
-          <label class="gid-group">
-            <span class="gid-label">4) <b>Presets</b> — número tras <span class="mono">#gid=…</span></span>
-            <input id="gid-${g.code}-presets" class="gid-input" placeholder="ej. 246802468" title="Pega solo el número que ves al final de la URL (#gid=…)" value="${cfg.gids.presets||''}">
+          <label class="gid-group"><span class="gid-label">4) <b>Presets</b> — número tras <span class="mono">#gid=…</span></span>
+            <input id="gid-${g.code}-presets" class="gid-input" placeholder="ej. 246802468" value="${cfg.gids.presets||''}">
           </label>
         </div>
       </td>
@@ -319,10 +437,9 @@ function renderHome(){
       <td><input id="in-${g.code}-teacher" placeholder="Nombre del docente" value="${cfg.teacher||''}"/></td>
     </tr>`;
   }).join('');
-
   setHTML('cfg-table',`${header}<tbody>${rows}</tbody>`);
 }
-$('btn-save').addEventListener('click',()=>{
+document.getElementById('btn-save').addEventListener('click',()=>{
   for(const g of GROUPS){
     const vs=$('in-'+g.code+'-sheet').value.trim();
     const vt=$('in-'+g.code+'-teacher').value.trim();
@@ -335,13 +452,13 @@ $('btn-save').addEventListener('click',()=>{
       presets:$('gid-'+g.code+'-presets').value.trim()
     };
   }
-  saveCfg(); renderHome(); alert('Configuración guardada.');
+  saveCfg(); buildCfgTable(); renderHome(); alert('Configuración guardada.');
 });
-$('btn-clear').addEventListener('click',()=>{
-  if(confirm('¿Borrar toda la configuración guardada?')){localStorage.removeItem(LS_KEY);loadCfg();renderHome();}
+document.getElementById('btn-clear').addEventListener('click',()=>{
+  if(confirm('¿Borrar toda la configuración guardada?')){localStorage.removeItem(LS_KEY);loadCfg();buildCfgTable();renderHome();}
 });
 
-/* ===== GRUPO ===== */
+/* ===== GRUPO / ALUMNOS ===== */
 let CURRENT_GROUP=null, CURRENT_SHEET=null, CURRENT_CFG=null; let ALUMNOS=[];
 async function loadAlumnos(sheetId,cfg){
   try{
@@ -384,14 +501,14 @@ function openGroup(code){
   })();
 }
 
-/* ===== ALUMNO ===== */
+/* ===== ALUMNO + porcentajes + trimestres ===== */
 function claveNoUID(t){return[normText(t.materia||''),normTrabajo(t.numero||''),normText(t.origen||''),normPagina(t.pagina||''),normDate(t.fechaObjetivo||'')].join('|');}
 function parseRegistro(cols,rows){
   const idx=names=>idxOfAnyLoose(cols,names);
   const iUIDE=idx(['UID_ENTREGA','UID ENTREGA','UID Entrega','uid_entrega','uidentrega']);
   const iUIDP=idx(['UID_PRESET','UID PRESET','UID Preset','uid_preset','uidpreset']);
   const iF=idx(['Fecha']), iFO=idx(['Fecha objetivo','Fecha Objetivo','Fecha_objetivo']), iH=idx(['Hora']);
-  const iID=idx(['ID','Id','id','Matricula','Matrícula','CURP','No Lista','N Lista','No_Lista','NUA']); // más sinónimos
+  const iID=idx(['ID','Id','id','Matricula','Matrícula','CURP','No Lista','N Lista','No_Lista','NUA']);
   const iN=idx(['Nombre','Nombre del alumno','Alumno','Apellidos y Nombres','Nombre y Apellido']);
   const iM=idx(['Materia']);
   const iNum=idx(['Nº Trabajo','No. Trabajo','Nº','No','Numero','Número','NumTrabajo']);
@@ -440,16 +557,91 @@ async function loadAsistenciaResumen(sheetId,cfg,alumnoRef){
   }catch{ return {asistencias:0,faltas:0,total:0}; }
 }
 function renderTrabajoItem(t){
-  const fecha=normDate(t.fechaObjetivo)||t.fechaObjetivo||''; const nombreT=t.nombreTrabajo?` · <i>${t.nombreTrabajo}</i>`:'';
-  return `<details><summary><b>${t.materia||'–'}</b> — ${t.numero||'–'} (${t.origen||'–'}${t.pagina?' · p.'+t.pagina:''})${nombreT}${fecha?' · '+fecha:''}</summary>
-  <div class="hint">Momento: ${t.momento||'–'} · UID: <span class="mono">${t.uid||'(s/uid)'}</span></div></details>`;
+  const fecha=normDate(t.fechaObjetivo)||t.fechaObjetivo||''; 
+  const nombreT=t.nombreTrabajo?` · <i>${t.nombreTrabajo}</i>`:'';
+  const mom = t.momento ? ` · ${momLabel(t.momento)}` : '';
+  return `<details><summary><b>${t.materia||'–'}</b> — ${t.numero||'–'} (${t.origen||'–'}${t.pagina?' · p.'+t.pagina:''})${nombreT}${fecha?' · '+fecha:''}${mom}</summary>
+  <div class="hint">UID: <span class="mono">${t.uid||'(s/uid)'}</span></div></details>`;
 }
+
+/* ===== Estado de alumno + filtro por trimestre ===== */
+let STUDENT_DATA = {faltantes:[], tarde:[], aTiempo:[], alumno:null};
+let MOM_FILTER = 'ALL'; // ALL | M1 | M2 | M3
+
+function setMomentChips(){
+  const el = $('moment-chips');
+  const opts = [
+    {v:'ALL', label:'Todo'},
+    {v:'M1',  label:'Trimestre 1 (M1)'},
+    {v:'M2',  label:'Trimestre 2 (M2)'},
+    {v:'M3',  label:'Trimestre 3 (M3)'},
+  ];
+  el.innerHTML = opts.map(o=>`<button class="chip ${MOM_FILTER===o.v?'active':''}" data-v="${o.v}">${o.label}</button>`).join('');
+  for(const b of el.querySelectorAll('.chip')){
+    b.addEventListener('click', ()=>{
+      MOM_FILTER = b.getAttribute('data-v');
+      setMomentChips();
+      renderStudentSections();
+    });
+  }
+}
+function applyMomentFilter(list){
+  if(MOM_FILTER==='ALL') return list;
+  const t = MOM_FILTER;
+  return list.filter(x => String(x.momento||'').toUpperCase()===t);
+}
+function buildPctCards(){
+  const all = [...STUDENT_DATA.faltantes, ...STUDENT_DATA.tarde, ...STUDENT_DATA.aTiempo];
+  const deliveredAll = STUDENT_DATA.tarde.length + STUDENT_DATA.aTiempo.length;
+  const make = (tag) => {
+    if(tag==='ALL'){
+      const total = all.length, done = deliveredAll;
+      return {title:'General', pct:fmtPct(done,total), frac:`${done}/${total}`};
+    }else{
+      const mm = tag;
+      const tot = all.filter(x=>String(x.momento||'').toUpperCase()===mm).length;
+      const done = [...STUDENT_DATA.tarde, ...STUDENT_DATA.aTiempo].filter(x=>String(x.momento||'').toUpperCase()===mm).length;
+      return {title:`${MOM_MAP[mm]} (${mm})`, pct:fmtPct(done,tot), frac:`${done}/${tot}`};
+    }
+  };
+  const cards=[make('ALL'), make('M1'), make('M2'), make('M3')];
+  $('resume-pcts').innerHTML = cards.map(c=>`
+    <div class="card-mini">
+      <div class="t">${c.title}</div>
+      <div class="v">${c.pct}</div>
+      <div class="t">${c.frac}</div>
+    </div>`).join('');
+}
+function renderStudentSections(){
+  const falt = applyMomentFilter(STUDENT_DATA.faltantes);
+  const tar  = applyMomentFilter(STUDENT_DATA.tarde);
+  const ati  = applyMomentFilter(STUDENT_DATA.aTiempo);
+  const totalFil = falt.length + tar.length + ati.length;
+  const doneFil  = tar.length + ati.length;
+
+  setHTML('resume-pills', `
+    <span class="pill bad">Faltantes: ${falt.length}</span>
+    <span class="pill warn">Tarde: ${tar.length}</span>
+    <span class="pill ok">A tiempo: ${ati.length}</span>
+    <span class="pill">Cumplimiento (filtro): ${doneFil}/${totalFil} · ${fmtPct(doneFil,totalFil)}</span>
+  `);
+
+  buildPctCards();
+
+  setHTML('faltantes', falt.length ? falt.map(renderTrabajoItem).join('') : '<div class="empty">Sin faltantes (según filtro).</div>');
+  setHTML('tarde',     tar.length  ? tar.map(renderTrabajoItem).join('')  : '<div class="empty">Sin entregas tarde.</div>');
+  setHTML('atiempo',   ati.length  ? ati.map(renderTrabajoItem).join('')  : '<div class="empty">Sin entregas a tiempo.</div>');
+}
+
 async function openStudent(sheetId,cfg,alumno){
   $('student-title').textContent=`${alumno.nombre} — ${alumno.id||''}`;
   $('student-meta').textContent='Cargando…';
-  setHTML('resume-pills',''); setHTML('faltantes',''); setHTML('tarde',''); setHTML('atiempo','');
+  setHTML('resume-pills',''); setHTML('faltantes',''); setHTML('tarde',''); setHTML('atiempo',''); setHTML('resume-pcts','');
   $('back-to-group').onclick=e=>{e.preventDefault();show('view-group');};
   show('view-student');
+  MOM_FILTER = 'ALL';
+  setMomentChips();
+
   try{
     let reg={cols:[],rows:[]}; try{reg=await loadSheetBlock(sheetId,'registro',cfg);}catch(e){}
     let entregas=parseRegistro(reg.cols,reg.rows);
@@ -470,12 +662,12 @@ async function openStudent(sheetId,cfg,alumno){
       if(ent){(ent.atrasoDias>0?tarde:aTiempo).push({...p});} else {faltantes.push({...p});}
     } }
 
+    STUDENT_DATA = {faltantes, tarde, aTiempo, alumno};
+    renderStudentSections();
+
     const {asistencias,faltas,total}=await loadAsistenciaResumen(sheetId,cfg,{id:alumno.id,nombre:alumno.nombre});
-    setHTML('resume-pills',`<span class="pill bad">Faltantes: ${faltantes.length}</span><span class="pill warn">Tarde: ${tarde.length}</span><span class="pill ok">A tiempo: ${aTiempo.length}</span><span class="pill">Asistencias: ${asistencias}/${total}</span>`);
-    $('student-meta').textContent=`Hoja: ${sheetId}`;
-    setHTML('faltantes', faltantes.length? faltantes.map(renderTrabajoItem).join('') : '<div class="empty">Sin faltantes (según Presets).</div>');
-    setHTML('tarde', tarde.length? tarde.map(renderTrabajoItem).join('') : '<div class="empty">Sin entregas tarde.</div>');
-    setHTML('atiempo', aTiempo.length? aTiempo.map(renderTrabajoItem).join('') : '<div class="empty">Sin entregas a tiempo.</div>');
+    const pAsis = fmtPct(asistencias,total);
+    $('student-meta').textContent=`Hoja: ${sheetId} · Asistencias: ${asistencias}/${total}${total? ' ('+pAsis+')':''}`;
   }catch(e){
     $('student-meta').textContent='Error al cargar datos.';
     setHTML('faltantes',`<div class="empty">No se pudieron leer los datos.<br><span class="hint">${e.message}</span></div>`); setHTML('tarde',''); setHTML('atiempo','');
@@ -499,7 +691,8 @@ async function diagnoseSheet(sheetId,cfg){
 }
 
 /* ===== INIT ===== */
-loadCfg(); renderHome(); $('back-to-home').onclick=e=>{e.preventDefault(); show('view-home');};
+loadCfg(); loadKpiPref(); buildCfgTable(); renderHome();
+$('back-to-home').onclick=e=>{e.preventDefault(); show('view-home');};
 </script>
 </body>
 </html>
