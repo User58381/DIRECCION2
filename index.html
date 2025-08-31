@@ -93,7 +93,6 @@
   .mono{font-family:ui-monospace,Consolas,monospace}
   .badge{background:color-mix(in oklab, var(--ghost-bg) 90%, transparent);border:1px solid #2a3b66;border-radius:999px;padding:6px 10px;color:#a7bed7;font-size:12px}
 
-  /* Print: exportar PDF (solo la vista del alumno) */
   @media print{
     header, #view-home, #view-group .search, .chips, .hint, .btns-hide-print{display:none!important}
     body{background:white}
@@ -101,7 +100,7 @@
     .section{break-inside:avoid}
   }
 
-  /* === Píldoras (alto contraste) === */
+  /* Píldoras alto contraste */
   .pill{padding:6px 12px;border-radius:999px;font-size:14px;font-weight:800;letter-spacing:.2px;border:1px solid transparent}
   [data-theme="dark"] .pill.ok{background:#0a3b2f;color:#c9ffe9;border-color:#1ec48d}
   [data-theme="dark"] .pill.warn{background:#3f360b;color:#ffe089;border-color:#ffce3a}
@@ -131,9 +130,11 @@
       <button class="chip ghost" id="kpi-last">Semana pasada</button>
       <input type="date" id="kpi-date"/><button class="small ghost" id="kpi-go">Ir</button>
       <span class="hint">· Días esperados:</span>
-      <select id="kpi-days"><option value="5">5</option><option value="4">4</option>
+      <select id="kpi-days">
+        <option value="5">5</option><option value="4">4</option>
         <option value="3">3</option><option value="2">2</option><option value="1">1</option>
-        <option value="registered">Días registrados</option></select>
+        <option value="registered">Días registrados</option>
+      </select>
       <span class="hint" id="kpi-week-label"></span>
     </div>
 
@@ -173,7 +174,6 @@
     <h2 id="student-title" style="color:var(--text);margin:8px 0 2px 0"></h2>
     <div id="student-meta" class="hint"></div>
 
-    <!-- Tarjeta resumen -->
     <div id="summary-card" class="summary risk-low" style="margin-top:12px">
       <div>
         <div class="info-row">
@@ -267,6 +267,7 @@ const KPI_PREF_KEY='audqr_kpi_pref_v1';
 const stripDiacritics=s=>s.normalize('NFD').replace(/[\u0300-\u036f]/g,'');
 const normText=s=>stripDiacritics(String(s||'').toLowerCase()).replace(/\s+/g,' ').trim();
 const normTrabajo=s=>normText(s).replace(/^trabajo\s*/,''); const normPagina=s=>normText(s).replace(/^p\.?\s*/,'');
+
 const pad=n=>String(n).padStart(2,'0'); const ymd=d=>`${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
 function normDate(s){const t=String(s||'').trim(); if(!t)return''; const a=/^(\d{4}-\d{2}-\d{2})/.exec(t); if(a) return a[1];
   const b=/^(\d{1,2})[\/-](\d{1,2})[\/-](\d{4})$/.exec(t); if(b){const d=new Date(+b[3],b[2]-1,+b[1]); return ymd(d);}
@@ -287,20 +288,6 @@ function getWeekSet(baseDate, includeWeekend=false){
   const set = new Set();
   for(let i=0;i<days;i++){ const t=new Date(mon); t.setDate(mon.getDate()+i); set.add(ymd(t)); }
   return set;
-}
-
-/* Heurísticas */
-function findIdColumn(cols, rows){
-  let i = idxOfAnyLoose(cols, ['ID','Id','id','Matricula','Matrícula','CURP','No Lista','N Lista','No_Lista','NUA','Numero lista','N° Lista','Lista']);
-  if (i >= 0) return i;
-  const maxRows = Math.min(rows.length, 30); const score = new Array(cols.length).fill(0);
-  for (let r = 0; r < maxRows; r++){ const row = rows[r] || [];
-    for (let c = 0; c < cols.length; c++){ const v = String(row[c] ?? '').trim(); if (!v) continue;
-      if (/^ID[A-Z0-9]{4,}$/i.test(v)) score[c]+=3;
-      if (/^[A-Z0-9]{8,}$/.test(v)) score[c]+=1;
-      if (v.length>=8 && v.length<=16) score[c]+=0.5;
-    } }
-  let best=-1,scoreBest=0; for(let c=0;c<score.length;c++){ if(score[c]>scoreBest){scoreBest=score[c]; best=c;} } return scoreBest>0?best:-1;
 }
 function getDateColumns(cols){return cols.map((c,i)=> normDate(String(c).trim()) ? i : -1).filter(i=>i>=0);}
 function isPresent(v){const s=normText(v); if(!s) return false; if(!Number.isNaN(+s)) return (+s)>0; const s2=s.replace(/\s+/g,''); if(/^1\(100%?\)$/.test(s2)) return true;
@@ -371,28 +358,28 @@ function saveKpiPref(){ localStorage.setItem(KPI_PREF_KEY, JSON.stringify(KPI_PR
 
 function mondayDatesLabel(base){const ys=weekDates(base); return `${ys[0]} → ${ys[4]}`;}
 
-/* KPI semanal:
-   - Esta semana / Semana pasada: LV y, si no hay, LD de la MISMA semana.
-   - Modo fecha manual (mode==='date'): ESTRICTO (LV; si no hay, LD de la misma semana; SIN "últimos 7 días"). */
+/* ====== KPI semanal (CORREGIDO) ======
+   - Obtiene días Lun–Vie; si no hay, Lun–Dom de esa MISMA semana.
+   - Calcula presentes y:
+     * regDays  = días realmente encontrados en la hoja.
+     * expDays  = según selector; si selector='registered' => regDays.
+     * Si regDays > expDays, ELEVA expDays = regDays (nunca mostrará 2/1).
+     * expected = alumnos × expDays (denominador correcto).
+*/
 async function computeGroupWeekAttendance(sheetId, cfg, baseDate, expectedDaysMode, mode){
   const strict = (mode === 'date');
   try{
     const {cols, rows}=await loadSheetBlock(sheetId,'asistencia',cfg);
 
-    // 1) Lun–Vie de esa semana
     const setLV = getWeekSet(baseDate,false);
     let dateCols = getDateColumns(cols).filter(i => setLV.has(normDate(cols[i])));
 
-    // 2) Si no hay columnas: Lun–Dom de esa MISMA semana
     if (dateCols.length === 0) {
       const setLD = getWeekSet(baseDate,true);
       dateCols = getDateColumns(cols).filter(i => setLD.has(normDate(cols[i])));
     }
-
-    // 3) Si sigue vacío y NO es estricto, (opcionalmente) podríamos ampliar a últimos 7 días.
-    //    En modo estricto NO lo hacemos.
     if (dateCols.length === 0 && !strict) {
-      // (omitido por ahora a petición)
+      // (opcional ampliar a últimos 7 días; omitido)
     }
 
     const students = rows.length;
@@ -400,12 +387,19 @@ async function computeGroupWeekAttendance(sheetId, cfg, baseDate, expectedDaysMo
     for(const r of rows){ for(const i of dateCols){ if(isPresent(r[i])) present++; } }
 
     const regDays = dateCols.length;
-    const expDays = (expectedDaysMode==='registered') ? regDays
-                   : Math.max(1, Math.min(5, +expectedDaysMode||5));
-    const expectedFull = students * (expDays || 1);
-    const pct = expectedFull>0 ? Math.round((present/expectedFull)*1000)/10 : 0;
 
-    return {present, regDays, expected: expectedFull, pct};
+    let expDays = (expectedDaysMode==='registered')
+        ? regDays
+        : Math.max(1, Math.min(5, +expectedDaysMode||5));
+
+    // 🔧 Ajuste clave: si se registraron más días que los esperados manualmente,
+    // elevamos el esperado para evitar casos 2/1 y coherencia del denominador.
+    if (regDays > expDays) expDays = regDays;
+
+    const expected = students * (expDays || 1);
+    const pct = expected>0 ? Math.round((present/expected)*1000)/10 : 0;
+
+    return {present, regDays, expDays, expected, pct};
   }catch{
     return null;
   }
@@ -442,7 +436,9 @@ async function refreshAllKPIs(){
     const cfg=CFG[g.code]; if(!cfg.sheetId) continue;
     const el=$('kpi-'+g.code); if(!el) continue; el.textContent='Asistencia semana: calculando…';
     const k=await computeGroupWeekAttendance(cfg.sheetId,cfg,base,KPI_PREF.exp,KPI_PREF.mode);
-    el.textContent= k? `Asistencia semana: ${k.present}/${k.expected} (${(k.pct||0).toFixed(1)}%) · días ${k.regDays}/${KPI_PREF.exp==='registered'?k.regDays:KPI_PREF.exp}` : 'Asistencia semana: no disponible';
+    el.textContent= k
+      ? `Asistencia semana: ${k.present}/${k.expected} (${(k.pct||0).toFixed(1)}%) · días ${k.regDays}/${k.expDays}`
+      : 'Asistencia semana: no disponible';
   }
 }
 
@@ -475,7 +471,7 @@ function buildCfgTable(){
   setHTML('cfg-table',`${header}<tbody>${rows}</tbody>`);
 }
 
-/* ---- FIX: botón Guardar sin typo ---- */
+/* Guardar configuración */
 $('btn-save').addEventListener('click', () => {
   for (const g of GROUPS) {
     const vs = $('in-' + g.code + '-sheet').value.trim();
@@ -535,6 +531,19 @@ function openGroup(code){
 }
 
 /* ===== PARSERS ===== */
+function findIdColumn(cols, rows){
+  let i = idxOfAnyLoose(cols, ['ID','Id','id','Matricula','Matrícula','CURP','No Lista','N Lista','No_Lista','NUA','Numero lista','N° Lista','Lista']);
+  if (i >= 0) return i;
+  const maxRows = Math.min(rows.length, 30); const score = new Array(cols.length).fill(0);
+  for (let r = 0; r < maxRows; r++){ const row = rows[r] || [];
+    for (let c = 0; c < cols.length; c++){ const v = String(row[c] ?? '').trim(); if (!v) continue;
+      if (/^ID[A-Z0-9]{4,}$/i.test(v)) score[c]+=3;
+      if (/^[A-Z0-9]{8,}$/.test(v)) score[c]+=1;
+      if (v.length>=8 && v.length<=16) score[c]+=0.5;
+    } }
+  let best=-1,scoreBest=0; for(let c=0;c<score.length;c++){ if(score[c]>scoreBest){scoreBest=score[c]; best=c;} } return scoreBest>0?best:-1;
+}
+
 function parseRegistro(cols,rows){
   const idx=names=>idxOfAnyLoose(cols,names);
   const iUIDE=idx(['UID_ENTREGA','UID ENTREGA','UID Entrega','uid_entrega','uidentrega']);
@@ -583,7 +592,7 @@ function parseDirectorio(cols,rows){
   return map;
 }
 
-/* ===== ASISTENCIA CÁLCULOS ===== */
+/* ===== ASISTENCIA (alumno/grupo) ===== */
 function asistenciaRangeForStudent(cols,rows,ref,start,end){
   const iId=findIdColumn(cols,rows); const iNom=idxOfAnyLoose(cols,['Nombre','Nombre del alumno','Alumno','Apellidos y Nombres','Nombre y Apellido']);
   let row=null; if(iId>=0 && ref.id) row=rows.find(r=>normText(r[iId])===normText(ref.id)); if(!row && iNom>=0 && ref.nombre) row=rows.find(r=>normText(r[iNom])===normText(ref.nombre));
@@ -634,7 +643,7 @@ function buildPctCards(){
   const cards=[make('ALL'),make('M1'),make('M2'),make('M3')];
   $('resume-pcts').innerHTML=cards.map(c=>`<div class="card-mini"><div class="t">${c.title}</div><div class="v">${c.pct}</div><div class="t">${c.frac}</div></div>`).join('');
 }
-function renderTrabajoItem(t){ const fecha=normDate(t.fechaObjetivo)||t.fechaObjetivo||''; const mom=t.momento?` · ${MOM_MAP2[t.momento]||t.momento}`:''; const nom=t.nombreTrabajo?` · <i>${t.nombreTrabajo}</i>`:'';
+function renderTrabajoItem(t){ const fecha=normDate(t.fechaObjetivo)||t.fechaObjetivo||''; const mom=t.momento?` · ${MOM_MAP2[t.momento]||t.momento}`:''; const nom=t.nombreTrabajo?` · <i>${t.nombreTrabajo}</i>`:''; 
   return `<details><summary><b>${t.materia||'–'}</b> — ${t.numero||'–'} (${t.origen||'–'}${t.pagina?' · p.'+t.pagina:''})${nom}${fecha?' · '+fecha:''}${mom}</summary>
   <div class="hint">UID: <span class="mono">${t.uid||'(s/uid)'}</span></div></details>`; }
 function renderStudentSections(){
@@ -708,8 +717,7 @@ async function openStudent(sheetId,cfg,alumno){
     const expectedGrupo=alumnosCount*totalPresets;
     const cumpGrupo=expectedGrupo?Math.round((deliveredGrupo/expectedGrupo)*100):0;
 
-    const risk = (()=>{
-      const faltRatio = totalPresets? faltantes.length/totalPresets : 0;
+    const risk = (()=>{ const faltRatio = totalPresets? faltantes.length/totalPresets : 0;
       if (faltantes.length>10 || faltRatio>0.2 || pct30<75) return 'high';
       if (faltantes.length>=5 || pct30<85) return 'med';
       return 'low';
