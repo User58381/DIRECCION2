@@ -1,59 +1,82 @@
 <!doctype html>
-<html lang="es">
+<html lang="es" data-theme="dark">
 <head>
 <meta charset="utf-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1"/>
 <title>Aula Digital QR — Faltantes y Asistencias (Directivo)</title>
 <style>
   :root{
-    --bg:#0b1020; --card:#121a30; --muted:#90a4b4; --text:#eaf3ff; --accent:#6aa9ff; --ok:#1ec28b; --warn:#ffcc66; --bad:#ff6b6b;
-    --br:18px;
+    /* DARK */
+    --bg1:#0b1020; --bg2:#0a0d18;
+    --header-bg:#0b1020cc;
+    --border:#1a2540;
+    --card:#121a30;
+    --text:#eaf3ff;
+    --muted:#90a4b4;
+    --accent:#6aa9ff;
+    --ghost-bg:#18243d;
+    --input-bg:#0b1326;
+    --input-bd:#24345c;
   }
+  [data-theme="light"]{
+    /* LIGHT */
+    --bg1:#f6f8ff; --bg2:#eef2ff;
+    --header-bg:#ffffffcc;
+    --border:#dbe4ff;
+    --card:#ffffff;
+    --text:#0b1020;
+    --muted:#5b6b7a;
+    --accent:#2b6bff;
+    --ghost-bg:#eef2ff;
+    --input-bg:#ffffff;
+    --input-bd:#c7d2fe;
+  }
+
   *{box-sizing:border-box}
-  body{margin:0;font-family:system-ui,-apple-system,Segoe UI,Roboto,Inter,Arial;background:linear-gradient(180deg,#0b1020,#0a0d18);}
-  header{position:sticky;top:0;z-index:10;background:#0b1020cc;backdrop-filter:blur(6px);border-bottom:1px solid #1a2540}
+  body{margin:0;font-family:system-ui,-apple-system,Segoe UI,Roboto,Inter,Arial;background:linear-gradient(180deg,var(--bg1),var(--bg2))}
+  header{position:sticky;top:0;z-index:10;background:var(--header-bg);backdrop-filter:blur(6px);border-bottom:1px solid var(--border)}
   header .wrap{max-width:1100px;margin:auto;padding:14px 16px;display:flex;gap:12px;align-items:center;color:var(--text)}
   header h1{font-size:18px;margin:0;font-weight:700;letter-spacing:.2px}
-  header .right{margin-left:auto;display:flex;gap:8px}
+  header .right{margin-left:auto;display:flex;gap:8px;align-items:center}
   button,.chip{border:0;background:var(--accent);color:#07101f;padding:10px 14px;border-radius:10px;font-weight:700;cursor:pointer}
-  button.ghost{background:#18243d;color:var(--text)}
+  button.ghost{background:var(--ghost-bg);color:var(--text)}
   button.small{padding:6px 10px;border-radius:8px;font-size:13px}
   main{max-width:1100px;margin:auto;padding:16px}
   .grid{display:grid;grid-template-columns:repeat(2,minmax(280px,1fr));gap:14px}
   @media (min-width:860px){.grid{grid-template-columns:repeat(3,minmax(280px,1fr))}}
-  .tile{background:var(--card);border:1px solid #1a2540;border-radius:var(--br);padding:16px;display:flex;gap:12px;align-items:center;cursor:pointer;transition:.2s transform, .2s border-color}
+  .tile{background:var(--card);border:1px solid var(--border);border-radius:18px;padding:16px;display:flex;gap:12px;cursor:pointer;transition:.2s transform,.2s border-color}
   .tile:hover{transform:translateY(-1px);border-color:#2a3b66}
-  .tile .ico{width:52px;height:52px;border-radius:14px;background:#1a2540;display:grid;place-items:center;font-weight:800;color:var(--accent)}
+  .tile .ico{min-width:52px;height:52px;border-radius:14px;background:var(--ghost-bg);display:grid;place-items:center;font-weight:800;color:var(--accent)}
   .tile .name{color:var(--text);font-size:18px;font-weight:800}
-  .tile .sub{color:var(--muted);font-size:12px}
+  .tile .sub{color:var(--muted);font-size:12px;line-height:1.3}
   .tile .state{margin-left:auto;font-size:12px;color:var(--muted)}
-  .panel{margin-top:18px;background:#0d1428;border:1px dashed #2a3b66;border-radius:var(--br);padding:16px}
+  .panel{margin-top:18px;background:color-mix(in oklab, var(--card) 90%, transparent);border:1px dashed #2a3b66;border-radius:18px;padding:16px}
   .panel h3{margin:0 0 10px 0;color:var(--text);font-size:16px}
   table.cfg{width:100%;border-collapse:separate;border-spacing:0 8px}
   table.cfg th, table.cfg td{font-size:14px;color:var(--text)}
-  table.cfg input{width:100%;padding:10px 12px;border-radius:10px;border:1px solid #24345c;background:#0b1326;color:var(--text)}
+  table.cfg input{width:100%;padding:10px 12px;border-radius:10px;border:1px solid var(--input-bd);background:var(--input-bg);color:var(--text)}
   .view{display:none}
   .show{display:block}
-  .list{margin-top:12px;background:var(--card);border:1px solid #1a2540;border-radius:var(--br);overflow:hidden}
+  .list{margin-top:12px;background:var(--card);border:1px solid var(--border);border-radius:18px;overflow:hidden}
   .row{display:flex;gap:12px;align-items:center;padding:12px 14px;border-bottom:1px solid #19223f;color:var(--text);cursor:pointer}
   .row:last-child{border-bottom:0}
   .row .id{margin-left:auto;color:#9bb0c5;font-size:12px}
   .search{display:flex;gap:8px;margin:12px 0}
-  .search input{flex:1;padding:12px;border-radius:10px;border:1px solid #24345c;background:#0b1326;color:var(--text)}
+  .search input{flex:1;padding:12px;border-radius:10px;border:1px solid var(--input-bd);background:var(--input-bg);color:var(--text)}
   .pill{display:inline-block;padding:4px 8px;border-radius:999px;font-size:12px;margin-right:6px}
   .pill.ok{background:#0f4636;color:#b6ffe1}
   .pill.warn{background:#4a3f16;color:#ffeaa7}
   .pill.bad{background:#4a1c1c;color:#ffd3d3}
-  .section{margin-top:14px;background:var(--card);border:1px solid #1a2540;border-radius:var(--br);padding:12px}
+  .section{margin-top:14px;background:var(--card);border:1px solid var(--border);border-radius:18px;padding:12px}
   .section h4{margin:0 0 8px 0}
-  details{background:#0e1730;border:1px solid #203056;border-radius:12px;padding:8px 10px;margin:8px 0;color:var(--text)}
+  details{background:color-mix(in oklab, var(--ghost-bg) 80%, transparent);border:1px solid #203056;border-radius:12px;padding:8px 10px;margin:8px 0;color:var(--text)}
   summary{cursor:pointer;font-weight:700}
   .hint{color:var(--muted);font-size:12px}
   .empty{padding:12px;color:#9bb0c5}
   .kbd{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;background:#16213d;border:1px solid #263b6b;border-radius:6px;padding:0 6px}
   .back{display:inline-flex;gap:8px;align-items:center;color:var(--text);text-decoration:none}
   .mono{font-family:ui-monospace,Consolas,monospace}
-  .badge{background:#101a33;border:1px solid #2a3b66;border-radius:999px;padding:6px 10px;color:#a7bed7;font-size:12px}
+  .badge{background:color-mix(in oklab, var(--ghost-bg) 90%, transparent);border:1px solid #2a3b66;border-radius:999px;padding:6px 10px;color:#a7bed7;font-size:12px}
 </style>
 </head>
 <body>
@@ -62,6 +85,7 @@
     <h1>📘 Aula Digital QR — Faltantes por alumno</h1>
     <div class="right">
       <span class="badge">Modo director · GViz JSONP (solo lectura)</span>
+      <button id="btn-theme" class="ghost small" title="Cambiar tema">🌙 Oscuro</button>
     </div>
   </div>
 </header>
@@ -71,15 +95,15 @@
   <section id="view-home" class="view show">
     <div class="grid" id="grupo-grid"></div>
     <div class="panel">
-      <h3>⚙️ Configurar hojas (pega URL o ID de Google Sheets) y <span class="kbd">Guardar</span></h3>
+      <h3>⚙️ Configurar hojas (URL/ID) y docente por grupo</h3>
       <table class="cfg" id="cfg-table"></table>
       <div style="display:flex;gap:8px;margin-top:8px">
         <button id="btn-save">Guardar</button>
         <button class="ghost" id="btn-clear">Borrar configuración</button>
       </div>
       <p class="hint" style="margin-top:8px">
-        Nota: Las hojas deben estar compartidas como <b>“Cualquiera con el enlace → Lector”</b>.  
-        La app leerá las pestañas <span class="mono">Asistencia</span>, <span class="mono">Registro de trabajos</span> y <span class="mono">Presets</span>.
+        Requiere <b>“Cualquiera con el enlace → Lector”</b>.
+        Se leen: <span class="mono">Asistencia</span>, <span class="mono">Registro de trabajos</span>, <span class="mono">Presets</span>.
       </p>
     </div>
   </section>
@@ -87,7 +111,8 @@
   <!-- GRUPO -->
   <section id="view-group" class="view">
     <a class="back" href="#" id="back-to-home">← Volver</a>
-    <h2 id="group-title" style="color:var(--text);margin:8px 0 6px 0"></h2>
+    <h2 id="group-title" style="color:var(--text);margin:8px 0 2px 0"></h2>
+    <div id="group-teacher" class="hint" style="margin-bottom:10px"></div>
     <div class="search">
       <input id="q-alumno" placeholder="Buscar alumno por nombre o ID…"/>
       <div style="display:flex;gap:8px">
@@ -130,6 +155,23 @@
 </main>
 
 <script>
+/* ====================== TEMA ====================== */
+const THEME_KEY = 'audqr_theme';
+const btnTheme = document.getElementById('btn-theme');
+function applyTheme(t){
+  document.documentElement.setAttribute('data-theme', t);
+  localStorage.setItem(THEME_KEY, t);
+  btnTheme.textContent = t==='light' ? '☀️ Claro' : '🌙 Oscuro';
+}
+(function initTheme(){
+  const saved = localStorage.getItem(THEME_KEY) || 'dark';
+  applyTheme(saved);
+})();
+btnTheme.addEventListener('click', ()=>{
+  const cur = document.documentElement.getAttribute('data-theme') || 'dark';
+  applyTheme(cur==='dark' ? 'light' : 'dark');
+});
+
 /* ====================== UTILIDADES ====================== */
 const GROUPS = [
   {code:'1A', label:'1ero A'}, {code:'1B', label:'1ero B'},
@@ -143,7 +185,6 @@ const LS_KEY = 'audqr_sheets_v2';
 
 const stripDiacritics = s => s.normalize('NFD').replace(/[\u0300-\u036f]/g, '');
 const normText = s => stripDiacritics(String(s||'').toLowerCase()).replace(/\s+/g,' ').trim();
-const normCode = s => stripDiacritics(String(s||'').toUpperCase()).replace(/\s+/g,' ').trim();
 const normTrabajo = s => normText(s).replace(/^trabajo\s*/,'');
 const normPagina  = s => normText(s).replace(/^p\.?\s*/,'');
 function normDate(s){
@@ -169,14 +210,11 @@ function show(id){
 }
 function setHTML(id, html){ $(id).innerHTML = html; }
 
-/* Column matching tolerante: ignora espacios y guiones bajos */
+/* Column matching tolerante */
 function idxOfAnyLoose(cols, names){
-  const norm = s => s.toLowerCase().replace(/[\s_]+/g,'').trim();
-  const lc = cols.map(c=>norm(String(c||'')));
-  for(const k of names){ 
-    const i = lc.indexOf(norm(k));
-    if(i>=0) return i;
-  }
+  const norm = s => String(s||'').toLowerCase().replace(/[\s_]+/g,'').trim();
+  const lc = cols.map(c=>norm(c));
+  for(const k of names){ const i = lc.indexOf(norm(k)); if(i>=0) return i; }
   return -1;
 }
 
@@ -187,14 +225,8 @@ function fetchGViz(sheetId, sheetName){
     const cb = `__gviz_cb_${Date.now()}_${++__jsonpSeq}`;
     const url = `https://docs.google.com/spreadsheets/d/${sheetId}/gviz/tq?tqx=out:json;responseHandler:${cb}&sheet=${encodeURIComponent(sheetName)}&ts=${Date.now()}`;
     const script = document.createElement('script');
-    let timeout = setTimeout(()=>{
-      cleanup(); reject(new Error(`Timeout GViz ${sheetName}`));
-    }, 15000);
-    function cleanup(){
-      clearTimeout(timeout);
-      delete window[cb];
-      if(script.parentNode) script.parentNode.removeChild(script);
-    }
+    let timeout = setTimeout(()=>{ cleanup(); reject(new Error(`Timeout GViz ${sheetName}`)); }, 15000);
+    function cleanup(){ clearTimeout(timeout); delete window[cb]; if(script.parentNode) script.parentNode.removeChild(script); }
     window[cb] = (json)=>{
       cleanup();
       try{
@@ -204,8 +236,7 @@ function fetchGViz(sheetId, sheetName){
       }catch(e){ reject(e); }
     };
     script.onerror = ()=>{ cleanup(); reject(new Error(`Error de red GViz ${sheetName}`)); };
-    script.src = url;
-    document.head.appendChild(script);
+    script.src = url; document.head.appendChild(script);
   });
 }
 
@@ -213,21 +244,20 @@ function fetchGViz(sheetId, sheetName){
 let CFG = {};
 function loadCfg(){
   try{ CFG = JSON.parse(localStorage.getItem(LS_KEY)||'{}'); }catch{ CFG = {}; }
-  for(const g of GROUPS){ if(!CFG[g.code]) CFG[g.code] = {sheetId:''}; }
+  for(const g of GROUPS){ if(!CFG[g.code]) CFG[g.code] = {sheetId:'', teacher:''}; else { CFG[g.code].teacher ||= ''; } }
 }
-function saveCfg(){
-  localStorage.setItem(LS_KEY, JSON.stringify(CFG));
-}
+function saveCfg(){ localStorage.setItem(LS_KEY, JSON.stringify(CFG)); }
 function renderHome(){
   // Tiles
   const grid = GROUPS.map(g=>{
     const ok = !!CFG[g.code].sheetId;
+    const teacher = CFG[g.code].teacher || '(sin asignar)';
     return `
       <div class="tile" data-code="${g.code}">
         <div class="ico">${g.code}</div>
         <div>
           <div class="name">${g.label}</div>
-          <div class="sub">${ok? 'Hoja configurada' : 'Sin hoja configurada'}</div>
+          <div class="sub">Docente: <b>${teacher}</b><br>${ok? 'Hoja configurada' : 'Sin hoja configurada'}</div>
         </div>
         <div class="state">${ok? '✅' : '⚠️'}</div>
       </div>`;
@@ -240,21 +270,32 @@ function renderHome(){
       openGroup(code);
     });
   }
-  // Config table
+
+  // Config table: Grupo | URL/ID | Docente
+  const header = `
+    <thead>
+      <tr>
+        <th style="text-align:left;width:110px">Grupo</th>
+        <th style="text-align:left">URL o ID de la hoja</th>
+        <th style="text-align:left;width:220px">Docente</th>
+      </tr>
+    </thead>`;
   const rows = GROUPS.map(g=>`
     <tr>
-      <td style="width:110px"><b>${g.label}</b></td>
-      <td><input id="in-${g.code}" placeholder="URL o ID de la hoja" value="${CFG[g.code].sheetId ? 'https://docs.google.com/spreadsheets/d/'+CFG[g.code].sheetId+'/edit' : ''}"/></td>
+      <td><b>${g.label}</b></td>
+      <td><input id="in-${g.code}-sheet" placeholder="URL o ID de la hoja" value="${CFG[g.code].sheetId ? 'https://docs.google.com/spreadsheets/d/'+CFG[g.code].sheetId+'/edit' : ''}"/></td>
+      <td><input id="in-${g.code}-teacher" placeholder="Nombre del docente" value="${CFG[g.code].teacher||''}"/></td>
     </tr>`).join('');
-  setHTML('cfg-table', `<tbody>${rows}</tbody>`);
+  setHTML('cfg-table', `${header}<tbody>${rows}</tbody>`);
 }
 $('btn-save').addEventListener('click', ()=>{
   for(const g of GROUPS){
-    const v = $('in-'+g.code).value.trim();
-    CFG[g.code].sheetId = extractSheetId(v);
+    const vs = $('in-'+g.code+'-sheet').value.trim();
+    const vt = $('in-'+g.code+'-teacher').value.trim();
+    CFG[g.code].sheetId = extractSheetId(vs);
+    CFG[g.code].teacher = vt;
   }
-  saveCfg();
-  renderHome();
+  saveCfg(); renderHome();
   alert('Configuración guardada.');
 });
 $('btn-clear').addEventListener('click', ()=>{
@@ -269,7 +310,6 @@ let CURRENT_GROUP = null, CURRENT_SHEET = null;
 let ALUMNOS = []; // {nombre, id}
 
 async function loadAlumnos(sheetId){
-  // Intento por Asistencia A:B
   try{
     const {cols, rows} = await fetchGViz(sheetId, 'Asistencia');
     const iNombre = idxOfAnyLoose(cols, ['Nombre','Nombre del alumno']),
@@ -279,7 +319,6 @@ async function loadAlumnos(sheetId){
     if(list.length===0) throw new Error('Asistencia vacía');
     return list;
   }catch(e){
-    // Fallback a Puntos A:B
     const {cols, rows} = await fetchGViz(sheetId, 'Puntos');
     const iNombre = idxOfAnyLoose(cols, ['Nombre','Nombre del alumno']),
           iId     = idxOfAnyLoose(cols, ['ID','Id','id']);
@@ -311,7 +350,9 @@ function renderAlumnos(){
 function openGroup(code){
   CURRENT_GROUP = code;
   CURRENT_SHEET = CFG[code].sheetId;
-  $('group-title').textContent = `Grupo: ${GROUPS.find(g=>g.code===code).label}`;
+  const label = GROUPS.find(g=>g.code===code).label;
+  $('group-title').textContent = `Grupo: ${label}`;
+  $('group-teacher').textContent = `Docente: ${CFG[code].teacher || '(sin asignar)'}`;
   $('q-alumno').value = '';
   show('view-group');
   $('back-to-home').onclick = (e)=>{e.preventDefault(); show('view-home');};
@@ -326,7 +367,7 @@ function openGroup(code){
 }
 
 /* ====================== ALUMNO (faltantes/entregas/asistencia) ====================== */
-function claveNoUID(t){ // clave para fallback cuando no hay UID_PRESET en la entrega
+function claveNoUID(t){
   return [
     normText(t.materia||''),
     normTrabajo(t.numero||''),
@@ -434,59 +475,37 @@ async function openStudent(sheetId, alumno){
   $('student-meta').textContent = 'Cargando…';
   setHTML('resume-pills',''); setHTML('faltantes',''); setHTML('tarde',''); setHTML('atiempo','');
   $('back-to-group').onclick = (e)=>{e.preventDefault(); show('view-group');};
-
   show('view-student');
 
   try{
-    // Cargar registros y presets
     let reg = [], presets = [];
-    try{
-      const R = await fetchGViz(sheetId,'Registro de trabajos');
-      reg = parseRegistro(R.cols, R.rows);
-    }catch(e){ /* puede no existir */ }
-    try{
-      const P = await fetchGViz(sheetId,'Presets');
-      presets = parsePresets(P.cols, P.rows);
-    }catch(e){ /* puede no existir */ }
+    try{ const R = await fetchGViz(sheetId,'Registro de trabajos'); reg = parseRegistro(R.cols, R.rows); }catch(e){}
+    try{ const P = await fetchGViz(sheetId,'Presets'); presets = parsePresets(P.cols, P.rows); }catch(e){}
 
-    // Filtrar entregas del alumno
     const entregasAlumno = reg.filter(t => String(t.id||'').trim().toLowerCase() === String(alumno.id||'').trim().toLowerCase());
 
-    // Mapas de entregas
-    const entregasPorUID = new Map(); // uidPreset -> entrega
-    const clavesEntregas = new Map(); // claveNoUID -> entrega
+    const entregasPorUID = new Map();
+    const clavesEntregas = new Map();
     for(const t of entregasAlumno){
       if(t.uidPreset) entregasPorUID.set(t.uidPreset, t);
       else            clavesEntregas.set(claveNoUID(t), t);
     }
 
-    // Clasificar
-    const faltantes = [];
-    const aTiempo = [];
-    const tarde = [];
-
+    const faltantes = [], aTiempo = [], tarde = [];
     if(presets.length){
       for(const p of presets){
         let ent = entregasPorUID.get(p.uid);
         if(!ent){
-          const k = [
-            normText(p.materia||''), normTrabajo(p.numero||''), normText(p.origen||''), normPagina(p.pagina||''), normDate(p.fechaObjetivo||'')
-          ].join('|');
+          const k = [normText(p.materia||''), normTrabajo(p.numero||''), normText(p.origen||''), normPagina(p.pagina||''), normDate(p.fechaObjetivo||'')].join('|');
           ent = clavesEntregas.get(k);
         }
-        if(ent){
-          if(ent.atrasoDias>0) tarde.push({...p});
-          else                 aTiempo.push({...p});
-        }else{
-          faltantes.push({...p});
-        }
+        if(ent){ (ent.atrasoDias>0? tarde : aTiempo).push({...p}); }
+        else   { faltantes.push({...p}); }
       }
     }
 
-    // Asistencias
     const {asistencias, faltas, total} = await loadAsistenciaResumen(sheetId, alumno.id);
 
-    // Render resumen
     setHTML('resume-pills', `
       <span class="pill bad">Faltantes: ${faltantes.length}</span>
       <span class="pill warn">Tarde: ${tarde.length}</span>
@@ -495,7 +514,6 @@ async function openStudent(sheetId, alumno){
     `);
     $('student-meta').textContent = `Hoja: ${sheetId}`;
 
-    // Render listas
     setHTML('faltantes', faltantes.length ? faltantes.map(renderTrabajoItem).join('') : '<div class="empty">Sin faltantes (según Presets).</div>');
     setHTML('tarde',     tarde.length     ? tarde.map(renderTrabajoItem).join('')     : '<div class="empty">Sin entregas tarde.</div>');
     setHTML('atiempo',   aTiempo.length   ? aTiempo.map(renderTrabajoItem).join('')   : '<div class="empty">Sin entregas a tiempo.</div>');
@@ -507,7 +525,7 @@ async function openStudent(sheetId, alumno){
   }
 }
 
-/* ====================== Diagnóstico rápido ====================== */
+/* ====================== Diagnóstico ====================== */
 async function diagnoseSheet(sheetId){
   const tests = [
     {name:'Puntos', fn:()=>fetchGViz(sheetId,'Puntos')},
@@ -517,26 +535,13 @@ async function diagnoseSheet(sheetId){
   ];
   let msg = `Diagnóstico de hoja ${sheetId}\n`;
   for(const t of tests){
-    try{
-      const {cols, rows} = await t.fn();
-      msg += `✔ ${t.name}: ${cols.length} columnas, ${rows.length} filas\n`;
-    }catch(e){
-      msg += `✖ ${t.name}: ${e.message}\n`;
-    }
+    try{ const {cols, rows} = await t.fn(); msg += `✔ ${t.name}: ${cols.length} columnas, ${rows.length} filas\n`; }
+    catch(e){ msg += `✖ ${t.name}: ${e.message}\n`; }
   }
   alert(msg);
 }
 
 /* ====================== INIT ====================== */
-let ALUMNOS_CACHE = {};
-let PRESETS_CACHE = {};
-
-let CURRENT_STUDENT = null;
-
-let RESUMEN = null;
-
-let GID_MAP = {};
-
 loadCfg();
 renderHome();
 $('back-to-home').onclick = (e)=>{e.preventDefault(); show('view-home');};
