@@ -61,7 +61,7 @@
   <div class="wrap">
     <h1>📘 Aula Digital QR — Faltantes por alumno</h1>
     <div class="right">
-      <span class="badge">Modo director · GViz (solo lectura)</span>
+      <span class="badge">Modo director · GViz JSONP (solo lectura)</span>
     </div>
   </div>
 </header>
@@ -90,10 +90,13 @@
     <h2 id="group-title" style="color:var(--text);margin:8px 0 6px 0"></h2>
     <div class="search">
       <input id="q-alumno" placeholder="Buscar alumno por nombre o ID…"/>
-      <button id="btn-reload" class="ghost">Recargar</button>
+      <div style="display:flex;gap:8px">
+        <button id="btn-reload" class="ghost small">Recargar</button>
+        <button id="btn-diagnose" class="ghost small">Diagnóstico</button>
+      </div>
     </div>
     <div id="alumno-list" class="list"></div>
-    <p class="hint">Fuente: Asistencia!A:B</p>
+    <p class="hint">Fuente: Asistencia!A:B (con fallback a Puntos!A:B)</p>
   </section>
 
   <!-- ALUMNO -->
@@ -166,22 +169,44 @@ function show(id){
 }
 function setHTML(id, html){ $(id).innerHTML = html; }
 
-/* Parseo GViz */
-async function fetchGViz(sheetId, sheetName){
-  const url = `https://docs.google.com/spreadsheets/d/${sheetId}/gviz/tq?tqx=out:json&sheet=${encodeURIComponent(sheetName)}`;
-  const res = await fetch(url, {cache:'no-store'});
-  if(!res.ok) throw new Error(`GViz ${sheetName} -> ${res.status}`);
-  const text = await res.text();
-  const start = text.indexOf('('), end = text.lastIndexOf(')');
-  const json = JSON.parse(text.slice(start+1, end));
-  const cols = json.table.cols.map(c => (c.label||'').toString().trim());
-  const rows = json.table.rows.map(r => (r.c||[]).map(c => c?.v ?? ''));
-  return {cols, rows};
-}
-function idxOfAny(cols, arr){ 
-  const lc = cols.map(c=>c.trim().toLowerCase());
-  for(const k of arr){ const i = lc.indexOf(k.toLowerCase()); if(i>=0) return i; }
+/* Column matching tolerante: ignora espacios y guiones bajos */
+function idxOfAnyLoose(cols, names){
+  const norm = s => s.toLowerCase().replace(/[\s_]+/g,'').trim();
+  const lc = cols.map(c=>norm(String(c||'')));
+  for(const k of names){ 
+    const i = lc.indexOf(norm(k));
+    if(i>=0) return i;
+  }
   return -1;
+}
+
+/* ====================== GViz JSONP (sin CORS) ====================== */
+let __jsonpSeq = 0;
+function fetchGViz(sheetId, sheetName){
+  return new Promise((resolve,reject)=>{
+    const cb = `__gviz_cb_${Date.now()}_${++__jsonpSeq}`;
+    const url = `https://docs.google.com/spreadsheets/d/${sheetId}/gviz/tq?tqx=out:json;responseHandler:${cb}&sheet=${encodeURIComponent(sheetName)}&ts=${Date.now()}`;
+    const script = document.createElement('script');
+    let timeout = setTimeout(()=>{
+      cleanup(); reject(new Error(`Timeout GViz ${sheetName}`));
+    }, 15000);
+    function cleanup(){
+      clearTimeout(timeout);
+      delete window[cb];
+      if(script.parentNode) script.parentNode.removeChild(script);
+    }
+    window[cb] = (json)=>{
+      cleanup();
+      try{
+        const cols = (json.table?.cols||[]).map(c => (c.label||'').toString().trim());
+        const rows = (json.table?.rows||[]).map(r => (r.c||[]).map(c => c?.v ?? ''));
+        resolve({cols, rows});
+      }catch(e){ reject(e); }
+    };
+    script.onerror = ()=>{ cleanup(); reject(new Error(`Error de red GViz ${sheetName}`)); };
+    script.src = url;
+    document.head.appendChild(script);
+  });
 }
 
 /* ====================== HOME (config) ====================== */
@@ -242,12 +267,13 @@ $('btn-clear').addEventListener('click', ()=>{
 /* ====================== GRUPO ====================== */
 let CURRENT_GROUP = null, CURRENT_SHEET = null;
 let ALUMNOS = []; // {nombre, id}
+
 async function loadAlumnos(sheetId){
   // Intento por Asistencia A:B
   try{
     const {cols, rows} = await fetchGViz(sheetId, 'Asistencia');
-    const iNombre = idxOfAny(cols, ['Nombre','Nombre del alumno']),
-          iId     = idxOfAny(cols, ['ID','Id','id']);
+    const iNombre = idxOfAnyLoose(cols, ['Nombre','Nombre del alumno']),
+          iId     = idxOfAnyLoose(cols, ['ID','Id','id']);
     let list = rows.map(r=>({ nombre:String(r[iNombre]||'').trim(), id:String(r[iId]||'').trim() }))
                    .filter(x=>x.nombre || x.id);
     if(list.length===0) throw new Error('Asistencia vacía');
@@ -255,8 +281,8 @@ async function loadAlumnos(sheetId){
   }catch(e){
     // Fallback a Puntos A:B
     const {cols, rows} = await fetchGViz(sheetId, 'Puntos');
-    const iNombre = idxOfAny(cols, ['Nombre','Nombre del alumno']),
-          iId     = idxOfAny(cols, ['ID','Id','id']);
+    const iNombre = idxOfAnyLoose(cols, ['Nombre','Nombre del alumno']),
+          iId     = idxOfAnyLoose(cols, ['ID','Id','id']);
     let list = rows.map(r=>({ nombre:String(r[iNombre]||'').trim(), id:String(r[iId]||'').trim() }))
                    .filter(x=>x.nombre || x.id);
     return list;
@@ -291,6 +317,7 @@ function openGroup(code){
   $('back-to-home').onclick = (e)=>{e.preventDefault(); show('view-home');};
   $('btn-reload').onclick = async ()=>{ ALUMNOS = await loadAlumnos(CURRENT_SHEET); renderAlumnos(); };
   $('q-alumno').oninput = renderAlumnos;
+  $('btn-diagnose').onclick = ()=> diagnoseSheet(CURRENT_SHEET);
   (async ()=>{
     setHTML('alumno-list','<div class="empty">Cargando alumnos…</div>');
     try{ ALUMNOS = await loadAlumnos(CURRENT_SHEET); renderAlumnos(); }
@@ -309,83 +336,82 @@ function claveNoUID(t){ // clave para fallback cuando no hay UID_PRESET en la en
   ].join('|');
 }
 function parseRegistro(cols, rows){
-  const idx = (names)=>idxOfAny(cols, names);
-  const iUIDE = idx(['UID_ENTREGA','UID Entrega','uid_entrega']);
-  const iUIDP = idx(['UID_PRESET','UID Preset','uid_preset']);
+  const idx = (names)=>idxOfAnyLoose(cols, names);
+  const iUIDE = idx(['UID_ENTREGA','UID ENTREGA','UID Entrega','uid_entrega','uidentrega']);
+  const iUIDP = idx(['UID_PRESET','UID PRESET','UID Preset','uid_preset','uidpreset']);
   const iF    = idx(['Fecha']);
-  const iFO   = idx(['Fecha objetivo','Fecha Objetivo']);
+  const iFO   = idx(['Fecha objetivo','Fecha Objetivo','Fecha_objetivo']);
   const iH    = idx(['Hora']);
   const iID   = idx(['ID','Id','id']);
-  const iN    = idx(['Nombre']);
+  const iN    = idx(['Nombre','Nombre del alumno']);
   const iM    = idx(['Materia']);
-  const iNum  = idx(['Nº Trabajo','No. Trabajo','Nº','No','Numero','Número']);
+  const iNum  = idx(['Nº Trabajo','No. Trabajo','Nº','No','Numero','Número','NumTrabajo']);
   const iOri  = idx(['Origen']);
   const iPag  = idx(['Página','Pagina']);
   const iPts  = idx(['Puntos']);
-  const iAtr  = idx(['Atraso (días)','Atraso','Retraso']);
+  const iAtr  = idx(['Atraso (días)','Atraso','Retraso','Atraso_dias']);
   const iMom  = idx(['Momento']);
-  const iNomT = idx(['NombreTrabajo','Nombre Trabajo']);
-  const iOrgS = idx(['OrigenScan']);
+  const iNomT = idx(['NombreTrabajo','Nombre Trabajo','Nombre_trabajo']);
+  const iOrgS = idx(['OrigenScan','Origen Scan']);
   const iNot  = idx(['Notas']);
 
   return rows.map(r=>{
     const fecha = String(r[iF]??'').trim();
-    const fo    = String(r[iFO]??'').trim() || fecha;
+    const fo    = String((iFO>=0? r[iFO] : '')??'').trim() || fecha;
     const atraso = (()=> {
       if(iAtr>=0 && r[iAtr]!=='' && r[iAtr]!=null) return +r[iAtr]||0;
-      // calc fallback
       const d = new Date(fecha), o = new Date(fo);
       if(isNaN(+d) || isNaN(+o)) return 0;
       return Math.max(0, Math.round((d - o)/86400000));
     })();
     return {
-      uidEntrega:String(r[iUIDE]??'').trim(),
-      uidPreset:String(r[iUIDP]??'').trim(),
-      fecha, fechaObjetivo: fo, hora:String(r[iH]??'').trim(),
-      id:String(r[iID]??'').trim(),
-      nombre:String(r[iN]??'').trim(),
-      materia:String(r[iM]??'').trim(),
-      numero:String(r[iNum]??'').trim(),
-      origen:String(r[iOri]??'').trim(),
-      pagina:String(r[iPag]??'').trim(),
-      puntos:+(r[iPts]??0)||0,
+      uidEntrega:String((iUIDE>=0? r[iUIDE] : '')??'').trim(),
+      uidPreset:String((iUIDP>=0? r[iUIDP] : '')??'').trim(),
+      fecha, fechaObjetivo: fo, hora:String((iH>=0? r[iH] : '')??'').trim(),
+      id:String((iID>=0? r[iID] : '')??'').trim(),
+      nombre:String((iN>=0? r[iN] : '')??'').trim(),
+      materia:String((iM>=0? r[iM] : '')??'').trim(),
+      numero:String((iNum>=0? r[iNum] : '')??'').trim(),
+      origen:String((iOri>=0? r[iOri] : '')??'').trim(),
+      pagina:String((iPag>=0? r[iPag] : '')??'').trim(),
+      puntos:+((iPts>=0? r[iPts] : 0)??0)||0,
       atrasoDias: atraso,
-      momento:String(r[iMom]??'').trim(),
-      nombreTrabajo:String(r[iNomT]??'').trim(),
-      origenScan:String(r[iOrgS]??'').trim(),
-      notas:String(r[iNot]??'').trim(),
+      momento:String((iMom>=0? r[iMom] : '')??'').trim(),
+      nombreTrabajo:String((iNomT>=0? r[iNomT] : '')??'').trim(),
+      origenScan:String((iOrgS>=0? r[iOrgS] : '')??'').trim(),
+      notas:String((iNot>=0? r[iNot] : '')??'').trim(),
     }
   });
 }
 function parsePresets(cols, rows){
-  const idx = (names)=>idxOfAny(cols, names);
-  const iUID = idx(['UID_PRESET','UID Preset','uid_preset']);
-  const iFO  = idx(['Fecha objetivo','Fecha Objetivo']);
+  const idx = (names)=>idxOfAnyLoose(cols, names);
+  const iUID = idx(['UID_PRESET','UID PRESET','UID Preset','uid_preset','uidpreset']);
+  const iFO  = idx(['Fecha objetivo','Fecha Objetivo','Fecha_objetivo']);
   const iMom = idx(['Momento']);
   const iMat = idx(['Materia']);
-  const iNum = idx(['Nº Trabajo','No. Trabajo','Nº','No','Numero','Número']);
+  const iNum = idx(['Nº Trabajo','No. Trabajo','Nº','No','Numero','Número','NumTrabajo']);
   const iOri = idx(['Origen']);
   const iPag = idx(['Página','Pagina']);
-  const iNom = idx(['NombreTrabajo','Nombre Trabajo']);
+  const iNom = idx(['NombreTrabajo','Nombre Trabajo','Nombre_trabajo']);
   return rows.map(r=>({
-    uid:String(r[iUID]??'').trim(),
-    fechaObjetivo:String(r[iFO]??'').trim(),
-    momento:String(r[iMom]??'').trim(),
-    materia:String(r[iMat]??'').trim(),
-    numero:String(r[iNum]??'').trim(),
-    origen:String(r[iOri]??'').trim(),
-    pagina:String(r[iPag]??'').trim(),
-    nombreTrabajo:String(r[iNom]??'').trim(),
+    uid:String((iUID>=0? r[iUID] : '')??'').trim(),
+    fechaObjetivo:String((iFO>=0? r[iFO] : '')??'').trim(),
+    momento:String((iMom>=0? r[iMom] : '')??'').trim(),
+    materia:String((iMat>=0? r[iMat] : '')??'').trim(),
+    numero:String((iNum>=0? r[iNum] : '')??'').trim(),
+    origen:String((iOri>=0? r[iOri] : '')??'').trim(),
+    pagina:String((iPag>=0? r[iPag] : '')??'').trim(),
+    nombreTrabajo:String((iNom>=0? r[iNom] : '')??'').trim(),
   })).filter(p=>p.uid);
 }
 async function loadAsistenciaResumen(sheetId, alumnoId){
   try{
     const {cols, rows} = await fetchGViz(sheetId,'Asistencia');
-    const iId = idxOfAny(cols,['ID','Id','id']);
+    const iId = idxOfAnyLoose(cols,['ID','Id','id']);
     if(iId<0) return {asistencias:0, faltas:0, total:0};
     const row = rows.find(r=> String(r[iId]??'').trim().toLowerCase() === String(alumnoId||'').trim().toLowerCase());
     if(!row) return {asistencias:0, faltas:0, total:0};
-    const dateCols = cols.map((c,i)=>(/^\d{4}-\d{2}-\d{2}$/.test(c.trim())? i : -1)).filter(i=>i>=0);
+    const dateCols = cols.map((c,i)=>(/^\d{4}-\d{2}-\d{2}$/.test(String(c).trim())? i : -1)).filter(i=>i>=0);
     let presentes=0, total=0;
     for(const i of dateCols){
       const v = row[i];
@@ -434,32 +460,27 @@ async function openStudent(sheetId, alumno){
       else            clavesEntregas.set(claveNoUID(t), t);
     }
 
-    // Clasificar faltantes/tiempo
+    // Clasificar
     const faltantes = [];
     const aTiempo = [];
     const tarde = [];
 
-    // Primero, usar catálogo de Presets si existe
     if(presets.length){
       for(const p of presets){
-        // ¿entrega por UID?
         let ent = entregasPorUID.get(p.uid);
         if(!ent){
-          // fallback por clave (normalizada)
           const k = [
             normText(p.materia||''), normTrabajo(p.numero||''), normText(p.origen||''), normPagina(p.pagina||''), normDate(p.fechaObjetivo||'')
           ].join('|');
           ent = clavesEntregas.get(k);
         }
         if(ent){
-          if(ent.atrasoDias>0) tarde.push({...p, uid:p.uid, momento: p.momento, nombreTrabajo:p.nombreTrabajo, fechaObjetivo:p.fechaObjetivo});
-          else                 aTiempo.push({...p, uid:p.uid, momento: p.momento, nombreTrabajo:p.nombreTrabajo, fechaObjetivo:p.fechaObjetivo});
+          if(ent.atrasoDias>0) tarde.push({...p});
+          else                 aTiempo.push({...p});
         }else{
           faltantes.push({...p});
         }
       }
-    }else{
-      // Sin Presets: considerar "faltantes" vacío (no hay catálogo a cruzar)
     }
 
     // Asistencias
@@ -486,7 +507,36 @@ async function openStudent(sheetId, alumno){
   }
 }
 
+/* ====================== Diagnóstico rápido ====================== */
+async function diagnoseSheet(sheetId){
+  const tests = [
+    {name:'Puntos', fn:()=>fetchGViz(sheetId,'Puntos')},
+    {name:'Asistencia', fn:()=>fetchGViz(sheetId,'Asistencia')},
+    {name:'Registro de trabajos', fn:()=>fetchGViz(sheetId,'Registro de trabajos')},
+    {name:'Presets', fn:()=>fetchGViz(sheetId,'Presets')},
+  ];
+  let msg = `Diagnóstico de hoja ${sheetId}\n`;
+  for(const t of tests){
+    try{
+      const {cols, rows} = await t.fn();
+      msg += `✔ ${t.name}: ${cols.length} columnas, ${rows.length} filas\n`;
+    }catch(e){
+      msg += `✖ ${t.name}: ${e.message}\n`;
+    }
+  }
+  alert(msg);
+}
+
 /* ====================== INIT ====================== */
+let ALUMNOS_CACHE = {};
+let PRESETS_CACHE = {};
+
+let CURRENT_STUDENT = null;
+
+let RESUMEN = null;
+
+let GID_MAP = {};
+
 loadCfg();
 renderHome();
 $('back-to-home').onclick = (e)=>{e.preventDefault(); show('view-home');};
