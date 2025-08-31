@@ -358,13 +358,8 @@ function saveKpiPref(){ localStorage.setItem(KPI_PREF_KEY, JSON.stringify(KPI_PR
 
 function mondayDatesLabel(base){const ys=weekDates(base); return `${ys[0]} → ${ys[4]}`;}
 
-/* ====== KPI semanal (CORREGIDO) ======
-   - Obtiene días Lun–Vie; si no hay, Lun–Dom de esa MISMA semana.
-   - Calcula presentes y:
-     * regDays  = días realmente encontrados en la hoja.
-     * expDays  = según selector; si selector='registered' => regDays.
-     * Si regDays > expDays, ELEVA expDays = regDays (nunca mostrará 2/1).
-     * expected = alumnos × expDays (denominador correcto).
+/* ====== KPI semanal ======
+   L-V; si no hay, L-D de la misma semana. Registra días reales, ajusta expDays.
 */
 async function computeGroupWeekAttendance(sheetId, cfg, baseDate, expectedDaysMode, mode){
   const strict = (mode === 'date');
@@ -378,25 +373,20 @@ async function computeGroupWeekAttendance(sheetId, cfg, baseDate, expectedDaysMo
       const setLD = getWeekSet(baseDate,true);
       dateCols = getDateColumns(cols).filter(i => setLD.has(normDate(cols[i])));
     }
-    if (dateCols.length === 0 && !strict) {
-      // (opcional ampliar a últimos 7 días; omitido)
-    }
 
-    const students = rows.length;
     let present = 0;
-    for(const r of rows){ for(const i of dateCols){ if(isPresent(r[i])) present++; } }
+    // Solo contamos fechas con algún registro (evita columnas 100% vacías)
+    const usable = dateCols.filter(i => rows.some(r => r[i] !== null && r[i] !== ''));
 
-    const regDays = dateCols.length;
+    for(const r of rows){ for(const i of usable){ if(isPresent(r[i])) present++; } }
 
+    const regDays = usable.length;
     let expDays = (expectedDaysMode==='registered')
         ? regDays
         : Math.max(1, Math.min(5, +expectedDaysMode||5));
-
-    // 🔧 Ajuste clave: si se registraron más días que los esperados manualmente,
-    // elevamos el esperado para evitar casos 2/1 y coherencia del denominador.
     if (regDays > expDays) expDays = regDays;
 
-    const expected = students * (expDays || 1);
+    const expected = rows.length * (expDays || 1);
     const pct = expected>0 ? Math.round((present/expected)*1000)/10 : 0;
 
     return {present, regDays, expDays, expected, pct};
@@ -592,32 +582,78 @@ function parseDirectorio(cols,rows){
   return map;
 }
 
-/* ===== ASISTENCIA (alumno/grupo) ===== */
+/* ===== ASISTENCIA (alumno/grupo) — CORREGIDO ===== */
 function asistenciaRangeForStudent(cols,rows,ref,start,end){
-  const iId=findIdColumn(cols,rows); const iNom=idxOfAnyLoose(cols,['Nombre','Nombre del alumno','Alumno','Apellidos y Nombres','Nombre y Apellido']);
-  let row=null; if(iId>=0 && ref.id) row=rows.find(r=>normText(r[iId])===normText(ref.id)); if(!row && iNom>=0 && ref.nombre) row=rows.find(r=>normText(r[iNom])===normText(ref.nombre));
+  const iId=findIdColumn(cols,rows);
+  const iNom=idxOfAnyLoose(cols,['Nombre','Nombre del alumno','Alumno','Apellidos y Nombres','Nombre y Apellido']);
+
+  let row=null;
+  if(iId>=0 && ref.id) row=rows.find(r=>normText(r[iId])===normText(ref.id));
+  if(!row && iNom>=0 && ref.nombre) row=rows.find(r=>normText(r[iNom])===normText(ref.nombre));
   if(!row) return {present:0,total:0};
-  const dateCols=getDateColumns(cols).filter(i=>{const d=normDate(cols[i]); return d && d>=start && d<=end;});
-  let present=0,total=0; for(const i of dateCols){ const v=row[i]; if(v!==null && v!==''){ total++; if(isPresent(v)) present++; } }
+
+  const dateColsAll=getDateColumns(cols).filter(i=>{
+    const d=normDate(cols[i]); return d && d>=start && d<=end;
+  });
+
+  // Solo fechas con algún registro en TODO el grupo
+  const dateCols = dateColsAll.filter(i => rows.some(r => r[i] !== null && r[i] !== ''));
+
+  const total = dateCols.length; // cada fecha cuenta como clase esperada
+  let present=0;
+  for(const i of dateCols){ if(isPresent(row[i])) present++; }
   return {present,total};
 }
+
 function asistenciaRangeForGroup(cols,rows,start,end){
-  const dateCols=getDateColumns(cols).filter(i=>{const d=normDate(cols[i]); return d && d>=start && d<=end;});
-  let present=0,total=0; for(const r of rows){ for(const i of dateCols){ const v=r[i]; if(v!==null && v!==''){ total++; if(isPresent(v)) present++; } } }
-  return {present,total};
+  const dateColsAll=getDateColumns(cols).filter(i=>{
+    const d=normDate(cols[i]); return d && d>=start && d<=end;
+  });
+
+  // Solo fechas con algún registro en el grupo
+  const dateCols = dateColsAll.filter(i => rows.some(r => r[i] !== null && r[i] !== ''));
+
+  const totalExpected = rows.length * dateCols.length;
+  let present=0;
+  for(const r of rows){ for(const i of dateCols){ if(isPresent(r[i])) present++; } }
+  return {present,total: totalExpected};
 }
+
 function last4WeeksSeries(cols,rows,ref){
   const now=new Date(); const series=[]; for(let w=3; w>=0; w--){
     const base=new Date(now.getFullYear(),now.getMonth(),now.getDate()-7*w);
     const ds=weekDates(base); const a=asistenciaRangeForStudent(cols,rows,ref,ds[0],ds[4]); const pct=a.total?Math.round((a.present/a.total)*100):0; series.push(pct); }
   return series;
 }
+
+/* Racha — CORREGIDO: trata vacío como falta, pero ignora columnas 100% vacías */
 function rachaInasistencias(cols,rows,ref){
-  const iId=findIdColumn(cols,rows); const iNom=idxOfAnyLoose(cols,['Nombre','Nombre del alumno','Alumno']); let row=null;
-  if(iId>=0 && ref.id) row=rows.find(r=>normText(r[iId])===normText(ref.id)); if(!row && iNom>=0 && ref.nombre) row=rows.find(r=>normText(r[iNom])===normText(ref.nombre));
-  if(!row) return 0; const dcs=getDateColumns(cols).map(i=>({i,d:normDate(cols[i])})).filter(x=>x.d && x.d<=ymd(new Date())).sort((a,b)=>b.d.localeCompare(a.d));
-  let streak=0; for(const {i} of dcs){const v=row[i]; if(v===null||v==='') continue; if(isPresent(v)) break; streak++;} return streak;
+  const iId=findIdColumn(cols,rows);
+  const iNom=idxOfAnyLoose(cols,['Nombre','Nombre del alumno','Alumno']);
+  let row=null;
+  if(iId>=0 && ref.id) row=rows.find(r=>normText(r[iId])===normText(ref.id));
+  if(!row && iNom>=0 && ref.nombre) row=rows.find(r=>normText(r[iNom])===normText(ref.nombre));
+  if(!row) return 0;
+
+  const today = ymd(new Date());
+  const dateColsAll = getDateColumns(cols)
+    .map(i=>({i,d:normDate(cols[i])}))
+    .filter(x=>x.d && x.d<=today);
+
+  // Usables: alguna marca en el grupo
+  const usable = dateColsAll.filter(x => rows.some(r => r[x.i] !== null && r[x.i] !== ''));
+
+  usable.sort((a,b)=> b.d.localeCompare(a.d));
+
+  let streak=0;
+  for(const {i} of usable){
+    const v=row[i];
+    if(isPresent(v)) break;     // presente → corta la racha
+    streak++;                   // vacío o no-presente → cuenta como falta
+  }
+  return streak;
 }
+
 function drawSpark(elId,values){
   const w=160,h=40; const max=100,min=0; const step=w/(values.length-1 || 1);
   const y=v=> h - ( (v-min)/(max-min) )*h;
