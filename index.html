@@ -100,6 +100,24 @@
     main{max-width:none}
     .section{break-inside:avoid}
   }
+
+  /* === Píldoras (Faltantes / Tarde / A tiempo) — alto contraste === */
+  .pill{
+    padding: 6px 12px;
+    border-radius: 999px;
+    font-size: 14px;          /* antes 12 */
+    font-weight: 800;         /* más grueso */
+    letter-spacing: .2px;
+    border: 1px solid transparent;
+  }
+  /* Oscuro */
+  [data-theme="dark"] .pill.ok   { background:#0a3b2f; color:#c9ffe9; border-color:#1ec48d; }
+  [data-theme="dark"] .pill.warn { background:#3f360b; color:#ffe089; border-color:#ffce3a; }
+  [data-theme="dark"] .pill.bad  { background:#3e0f0f; color:#ffd0d0; border-color:#ff7a7a; }
+  /* Claro */
+  [data-theme="light"] .pill.ok   { background:#c6f3e6; color:#084c3a; border-color:#0ea371; }
+  [data-theme="light"] .pill.warn { background:#fff1b8; color:#8a5600; border-color:#f0b429; }
+  [data-theme="light"] .pill.bad  { background:#ffd1d1; color:#8a0e0e; border-color:#ef4444; }
 </style>
 </head>
 <body>
@@ -253,7 +271,7 @@ btnTheme.addEventListener('click',()=>{applyTheme((document.documentElement.getA
 
 /* ===== UTIL ===== */
 const GROUPS=[{code:'1A',label:'1ero A'},{code:'1B',label:'1ero B'},{code:'2A',label:'2do A'},{code:'2B',label:'2do B'},{code:'3A',label:'3ro A'},{code:'3B',label:'3ro B'},{code:'4A',label:'4to A'},{code:'4B',label:'4to B'},{code:'5A',label:'5to A'},{code:'5B',label:'5to B'},{code:'6A',label:'6to A'},{code:'6B',label:'6to B'}];
-const LS_KEY='audqr_sheets_v10';           // nueva versión
+const LS_KEY='audqr_sheets_v10';
 const KPI_PREF_KEY='audqr_kpi_pref_v1';
 const stripDiacritics=s=>s.normalize('NFD').replace(/[\u0300-\u036f]/g,'');
 const normText=s=>stripDiacritics(String(s||'').toLowerCase()).replace(/\s+/g,' ').trim();
@@ -270,6 +288,21 @@ function idxOfAnyLoose(cols,n){const f=x=>String(x||'').toLowerCase().replace(/[
 const MOM_MAP={M1:'Trimestre 1',M2:'Trimestre 2',M3:'Trimestre 3'}; const fmtPct=(n,d)=> d>0 ? (Math.round((n/d)*1000)/10)+'%' : '–';
 function mondayOf(d){const day=d.getDay(); const diff=(day===0?-6:1-day); const m=new Date(d); m.setDate(d.getDate()+diff); m.setHours(0,0,0,0); return m;}
 function weekDates(d){const mon=mondayOf(d); const ys=[]; for(let i=0;i<5;i++){const t=new Date(mon); t.setDate(mon.getDate()+i); ys.push(ymd(t));} return ys;}
+
+/* NUEVO: sets de semana (con y sin fin de semana) */
+function getWeekSet(baseDate, includeWeekend=false){
+  const d = new Date(baseDate.getFullYear(), baseDate.getMonth(), baseDate.getDate());
+  const day = d.getDay(); // 0=Dom, 1=Lun … 6=Sab
+  const diffToMon = (day===0 ? -6 : 1 - day);
+  const mon = new Date(d); mon.setDate(d.getDate()+diffToMon);
+  const days = includeWeekend ? 7 : 5;
+  const set = new Set();
+  for(let i=0;i<days;i++){
+    const t=new Date(mon); t.setDate(mon.getDate()+i);
+    set.add(ymd(t));
+  }
+  return set;
+}
 
 /* Heurísticas */
 function findIdColumn(cols, rows){
@@ -349,21 +382,47 @@ function loadKpiPref(){ try{Object.assign(KPI_PREF, JSON.parse(localStorage.getI
 function saveKpiPref(){ localStorage.setItem(KPI_PREF_KEY, JSON.stringify(KPI_PREF)); }
 
 function mondayDatesLabel(base){const ys=weekDates(base); return `${ys[0]} → ${ys[4]}`;}
+
+/* NUEVO: KPI semanal con fallback (L-V → L-D → últimos 7 días) */
 async function computeGroupWeekAttendance(sheetId, cfg, baseDate, expectedDaysMode){
   try{
     const {cols, rows}=await loadSheetBlock(sheetId,'asistencia',cfg);
-    const weekSet=new Set(weekDates(baseDate));
-    const dateCols=getDateColumns(cols).filter(i=>weekSet.has(normDate(cols[i])));
-    const students=rows.length; let present=0;
+
+    // 1) Lun–Vie
+    let weekSet = getWeekSet(baseDate,false);
+    let dateCols = getDateColumns(cols).filter(i => weekSet.has(normDate(cols[i])));
+
+    // 2) si no hay columnas, Lun–Dom
+    if(dateCols.length===0){
+      weekSet = getWeekSet(baseDate,true);
+      dateCols = getDateColumns(cols).filter(i => weekSet.has(normDate(cols[i])));
+    }
+
+    // 3) si sigue vacío, últimos 7 días
+    if(dateCols.length===0){
+      const end = new Date(baseDate.getFullYear(), baseDate.getMonth(), baseDate.getDate());
+      const start = new Date(end); start.setDate(end.getDate()-6);
+      const y0 = ymd(start), y1 = ymd(end);
+      dateCols = getDateColumns(cols).filter(i=>{
+        const d = normDate(cols[i]); return d && d>=y0 && d<=y1;
+      });
+    }
+
+    const students = rows.length;
+    let present = 0;
     for(const r of rows){ for(const i of dateCols){ if(isPresent(r[i])) present++; } }
-    const regDays=dateCols.length; const expDays=(expectedDaysMode==='registered')?regDays:Math.max(1,Math.min(5,+expectedDaysMode||5));
-    const expected=students*expDays; const pct=expected>0?Math.round((present/expected)*1000)/10:0;
-    return {present,regDays,expected,pct};
+
+    const regDays = dateCols.length;
+    const expDays = (expectedDaysMode==='registered') ? regDays
+                   : Math.max(1, Math.min(5, +expectedDaysMode||5));
+    const expectedFull = students * (expDays || 1);
+    const pct = expectedFull>0 ? Math.round((present/expectedFull)*1000)/10 : 0;
+
+    return {present, regDays, expected: expectedFull, pct};
   }catch{return null;}
 }
 
 function renderHome(){
-  // controles
   $('kpi-this').classList.toggle('active',KPI_PREF.mode==='this');
   $('kpi-last').classList.toggle('active',KPI_PREF.mode==='last');
   $('kpi-date').value=KPI_PREF.date||''; $('kpi-days').value=KPI_PREF.exp;
@@ -432,7 +491,7 @@ $('btn-save').addEventListener('click',()=>{
     CFG[g.code].sheetId=extractSheetId(vs); CFG[g.code].teacher=vt;
     CFG[g.code].gids={puntos:$('gid-'+g.code+'-puntos').value.trim(), asistencia:$('gid-'+g.code+'-asistencia').value.trim(),
       registro:$('gid-'+g.code+'-registro').value.trim(), presets:$('gid-'+g.code+'-presets').value.trim(),
-      directorio:$('gid-'+g.code+'-directorio').value.trim()};
+      directorio:$('gid-'+g.code}-directorio').value?.trim?.() || $('gid-'+g.code+'-directorio').value.trim()};
   }
   saveCfg(); buildCfgTable(); renderHome(); alert('Configuración guardada.');
 });
@@ -548,12 +607,10 @@ function rachaInasistencias(cols,rows,ref){
   if(!row) return 0; const dcs=getDateColumns(cols).map(i=>({i,d:normDate(cols[i])})).filter(x=>x.d && x.d<=ymd(new Date())).sort((a,b)=>b.d.localeCompare(a.d));
   let streak=0; for(const {i} of dcs){const v=row[i]; if(v===null||v==='') continue; if(isPresent(v)) break; streak++;} return streak;
 }
-function drawSpark(elId,values){ // values 0..100
+function drawSpark(elId,values){
   const w=160,h=40; const max=100,min=0; const step=w/(values.length-1 || 1);
   const y=v=> h - ( (v-min)/(max-min) )*h;
-  let d=''; values.forEach((v,i)=>{const x=i*step; const yy=y(v); d+= (i?'L':'M')+x+','+yy+' ';});
-  const circles=values.map((v,i)=>`<circle cx="${i*step}" cy="${y(v)}" r="2"></circle>`).join('');
-  $(elId).innerHTML=`<polyline points="${values.map((v,i)=>`${i*step},${y(v)}`).join(' ')}" fill="none" stroke="currentColor" stroke-width="2" opacity="0.8"/>${circles}`;
+  $(elId).innerHTML=`<polyline points="${values.map((v,i)=>`${i*step},${y(v)}`).join(' ')}" fill="none" stroke="currentColor" stroke-width="2" opacity="0.8"/>${values.map((v,i)=>`<circle cx="${i*step}" cy="${y(v)}" r="2"></circle>`).join('')}`;
 }
 
 /* ===== ALUMNO: ESTADO / RIESGO ===== */
@@ -625,20 +682,38 @@ async function openStudent(sheetId,cfg,alumno){
 
     // ===== Asistencia y comparativas =====
     const asis=await loadSheetBlock(sheetId,'asistencia',cfg);
-    const today=new Date(); const week=weekDates(today); const d30=ymd(new Date(today.getFullYear(),today.getMonth(),today.getDate()-30));
-    // Alumno
-    const wkA=asistenciaRangeForStudent(asis.cols,asis.rows,alumno,week[0],week[4]);
+    const today=new Date();
+
+    // Semana actual con fallback (como el KPI del home)
+    const weekSet1=getWeekSet(today,false);
+    const weekSet2=getWeekSet(today,true);
+    function asistenciaBySetForStudent(set){
+      const arr=Array.from(set);
+      const a=asistenciaRangeForStudent(asis.cols,asis.rows,alumno,arr[0],arr[arr.length-1]);
+      return a;
+    }
+    let wkA=asistenciaBySetForStudent(weekSet1);
+    if(wkA.total===0) wkA=asistenciaBySetForStudent(weekSet2);
+    if(wkA.total===0){
+      const end=ymd(today); const start=ymd(new Date(today.getFullYear(),today.getMonth(),today.getDate()-6));
+      wkA=asistenciaRangeForStudent(asis.cols,asis.rows,alumno,start,end);
+    }
+
+    const d30=ymd(new Date(today.getFullYear(),today.getMonth(),today.getDate()-30));
+    // Alumno 30 días
     const d30A=asistenciaRangeForStudent(asis.cols,asis.rows,alumno,d30,ymd(today));
-    const pctWk=wkA.total?Math.round((wkA.present/wkA.total)*100):0; const pct30=d30A.total?Math.round((d30A.present/d30A.total)*100):0;
-    // Grupo
+    // Grupo 30 días
     const d30G=asistenciaRangeForGroup(asis.cols,asis.rows,d30,ymd(today));
+
+    const pctWk=wkA.total?Math.round((wkA.present/wkA.total)*100):0;
+    const pct30=d30A.total?Math.round((d30A.present/d30A.total)*100):0;
     const pct30G=d30G.total?Math.round((d30G.present/d30G.total)*100):0;
 
     // Cumplimientos
     const deliveredAlumno=aTiempo.length+tarde.length; const totalPresets=presets.length;
     const cumpAlumno=totalPresets?Math.round((deliveredAlumno/totalPresets)*100):0;
     const alumnosCount=ALUMNOS?.length||0;
-    const deliveredGrupo=entregasAll.filter(t=>setUids.has(t.uidPreset)).length; // filas con UID válido
+    const deliveredGrupo=entregasAll.filter(t=>setUids.has(t.uidPreset)).length;
     const expectedGrupo=alumnosCount*totalPresets;
     const cumpGrupo=expectedGrupo?Math.round((deliveredGrupo/expectedGrupo)*100):0;
 
@@ -663,7 +738,7 @@ async function openStudent(sheetId,cfg,alumno){
     // Meta superior
     $('student-meta').textContent=`Hoja: ${sheetId} · Presets: ${totalPresets} · Entregas: ${deliveredAlumno} (tarde ${tarde.length}) · Faltantes: ${faltantes.length}`;
 
-    // Comparativa con grupo (tarjetas)
+    // Comparativa con grupo
     $('cmp-grupo').innerHTML=[
       {t:'Cumplimiento', v:`${cumpAlumno}%`, s:`Alumno: ${deliveredAlumno}/${totalPresets} · Grupo: ${cumpGrupo}%`},
       {t:'Asistencia 30 días', v:`${pct30}%`, s:`Alumno: ${d30A.present}/${d30A.total} · Grupo: ${pct30G}%`}
