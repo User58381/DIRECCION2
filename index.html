@@ -101,23 +101,14 @@
     .section{break-inside:avoid}
   }
 
-  /* === Píldoras (Faltantes / Tarde / A tiempo) — alto contraste === */
-  .pill{
-    padding: 6px 12px;
-    border-radius: 999px;
-    font-size: 14px;          /* antes 12 */
-    font-weight: 800;         /* más grueso */
-    letter-spacing: .2px;
-    border: 1px solid transparent;
-  }
-  /* Oscuro */
-  [data-theme="dark"] .pill.ok   { background:#0a3b2f; color:#c9ffe9; border-color:#1ec48d; }
-  [data-theme="dark"] .pill.warn { background:#3f360b; color:#ffe089; border-color:#ffce3a; }
-  [data-theme="dark"] .pill.bad  { background:#3e0f0f; color:#ffd0d0; border-color:#ff7a7a; }
-  /* Claro */
-  [data-theme="light"] .pill.ok   { background:#c6f3e6; color:#084c3a; border-color:#0ea371; }
-  [data-theme="light"] .pill.warn { background:#fff1b8; color:#8a5600; border-color:#f0b429; }
-  [data-theme="light"] .pill.bad  { background:#ffd1d1; color:#8a0e0e; border-color:#ef4444; }
+  /* === Píldoras (alto contraste) === */
+  .pill{padding:6px 12px;border-radius:999px;font-size:14px;font-weight:800;letter-spacing:.2px;border:1px solid transparent}
+  [data-theme="dark"] .pill.ok{background:#0a3b2f;color:#c9ffe9;border-color:#1ec48d}
+  [data-theme="dark"] .pill.warn{background:#3f360b;color:#ffe089;border-color:#ffce3a}
+  [data-theme="dark"] .pill.bad{background:#3e0f0f;color:#ffd0d0;border-color:#ff7a7a}
+  [data-theme="light"] .pill.ok{background:#c6f3e6;color:#084c3a;border-color:#0ea371}
+  [data-theme="light"] .pill.warn{background:#fff1b8;color:#8a5600;border-color:#f0b429}
+  [data-theme="light"] .pill.bad{background:#ffd1d1;color:#8a0e0e;border-color:#ef4444}
 </style>
 </head>
 <body>
@@ -182,7 +173,7 @@
     <h2 id="student-title" style="color:var(--text);margin:8px 0 2px 0"></h2>
     <div id="student-meta" class="hint"></div>
 
-    <!-- Tarjeta resumen + gráfico + semáforo -->
+    <!-- Tarjeta resumen -->
     <div id="summary-card" class="summary risk-low" style="margin-top:12px">
       <div>
         <div class="info-row">
@@ -288,19 +279,13 @@ function idxOfAnyLoose(cols,n){const f=x=>String(x||'').toLowerCase().replace(/[
 const MOM_MAP={M1:'Trimestre 1',M2:'Trimestre 2',M3:'Trimestre 3'}; const fmtPct=(n,d)=> d>0 ? (Math.round((n/d)*1000)/10)+'%' : '–';
 function mondayOf(d){const day=d.getDay(); const diff=(day===0?-6:1-day); const m=new Date(d); m.setDate(d.getDate()+diff); m.setHours(0,0,0,0); return m;}
 function weekDates(d){const mon=mondayOf(d); const ys=[]; for(let i=0;i<5;i++){const t=new Date(mon); t.setDate(mon.getDate()+i); ys.push(ymd(t));} return ys;}
-
-/* NUEVO: sets de semana (con y sin fin de semana) */
 function getWeekSet(baseDate, includeWeekend=false){
   const d = new Date(baseDate.getFullYear(), baseDate.getMonth(), baseDate.getDate());
-  const day = d.getDay(); // 0=Dom, 1=Lun … 6=Sab
-  const diffToMon = (day===0 ? -6 : 1 - day);
+  const day = d.getDay(); const diffToMon = (day===0 ? -6 : 1 - day);
   const mon = new Date(d); mon.setDate(d.getDate()+diffToMon);
   const days = includeWeekend ? 7 : 5;
   const set = new Set();
-  for(let i=0;i<days;i++){
-    const t=new Date(mon); t.setDate(mon.getDate()+i);
-    set.add(ymd(t));
-  }
+  for(let i=0;i<days;i++){ const t=new Date(mon); t.setDate(mon.getDate()+i); set.add(ymd(t)); }
   return set;
 }
 
@@ -311,7 +296,7 @@ function findIdColumn(cols, rows){
   const maxRows = Math.min(rows.length, 30); const score = new Array(cols.length).fill(0);
   for (let r = 0; r < maxRows; r++){ const row = rows[r] || [];
     for (let c = 0; c < cols.length; c++){ const v = String(row[c] ?? '').trim(); if (!v) continue;
-      if (/^ID[A-Z0-9]{4,}$/i.test(v)) score[c]+=3; if (/^[A-Z0-9]{8,}$/.test(v)) score[c]+=1; if (v.length>=8 && v.length<=16) score[c]+=0.5; } }
+      if (/^ID[A-Z0-9]{4,}$/i.test(v)) score[c]+=3; if (/^[A-Z0-9]{8,}$/.test(v)) score[c]+=1; if (v.length>=8 && v<=16) score[c]+=0.5; } }
   let best=-1,scoreBest=0; for(let c=0;c<score.length;c++){ if(score[c]>scoreBest){scoreBest=score[c]; best=c;} } return scoreBest>0?best:-1;
 }
 function getDateColumns(cols){return cols.map((c,i)=> normDate(String(c).trim()) ? i : -1).filter(i=>i>=0);}
@@ -383,7 +368,7 @@ function saveKpiPref(){ localStorage.setItem(KPI_PREF_KEY, JSON.stringify(KPI_PR
 
 function mondayDatesLabel(base){const ys=weekDates(base); return `${ys[0]} → ${ys[4]}`;}
 
-/* NUEVO: KPI semanal con fallback (L-V → L-D → últimos 7 días) */
+/* KPI semanal con fallback (L-V → L-D → últimos 7 días) */
 async function computeGroupWeekAttendance(sheetId, cfg, baseDate, expectedDaysMode){
   try{
     const {cols, rows}=await loadSheetBlock(sheetId,'asistencia',cfg);
@@ -392,13 +377,13 @@ async function computeGroupWeekAttendance(sheetId, cfg, baseDate, expectedDaysMo
     let weekSet = getWeekSet(baseDate,false);
     let dateCols = getDateColumns(cols).filter(i => weekSet.has(normDate(cols[i])));
 
-    // 2) si no hay columnas, Lun–Dom
+    // 2) Lun–Dom
     if(dateCols.length===0){
       weekSet = getWeekSet(baseDate,true);
       dateCols = getDateColumns(cols).filter(i => weekSet.has(normDate(cols[i])));
     }
 
-    // 3) si sigue vacío, últimos 7 días
+    // 3) Últimos 7 días
     if(dateCols.length===0){
       const end = new Date(baseDate.getFullYear(), baseDate.getMonth(), baseDate.getDate());
       const start = new Date(end); start.setDate(end.getDate()-6);
@@ -485,15 +470,28 @@ function buildCfgTable(){
     </tr>`;}).join('');
   setHTML('cfg-table',`${header}<tbody>${rows}</tbody>`);
 }
-$('btn-save').addEventListener('click',()=>{
-  for(const g of GROUPS){
-    const vs=$('in-'+g.code+'-sheet').value.trim(), vt=$('in-'+g.code+'-teacher').value.trim();
-    CFG[g.code].sheetId=extractSheetId(vs); CFG[g.code].teacher=vt;
-    CFG[g.code].gids={puntos:$('gid-'+g.code+'-puntos').value.trim(), asistencia:$('gid-'+g.code+'-asistencia').value.trim(),
-      registro:$('gid-'+g.code+'-registro').value.trim(), presets:$('gid-'+g.code+'-presets').value.trim(),
-      directorio:$('gid-'+g.code}-directorio').value?.trim?.() || $('gid-'+g.code+'-directorio').value.trim()};
+
+/* ---- FIX: botón Guardar sin typo ---- */
+$('btn-save').addEventListener('click', () => {
+  for (const g of GROUPS) {
+    const vs = $('in-' + g.code + '-sheet').value.trim();
+    const vt = $('in-' + g.code + '-teacher').value.trim();
+    CFG[g.code].sheetId = extractSheetId(vs);
+    CFG[g.code].teacher = vt;
+
+    const dirEl = $('gid-' + g.code + '-directorio');
+    CFG[g.code].gids = {
+      puntos:      $('gid-' + g.code + '-puntos').value.trim(),
+      asistencia:  $('gid-' + g.code + '-asistencia').value.trim(),
+      registro:    $('gid-' + g.code + '-registro').value.trim(),
+      presets:     $('gid-' + g.code + '-presets').value.trim(),
+      directorio:  dirEl ? (dirEl.value || '').trim() : ''
+    };
   }
-  saveCfg(); buildCfgTable(); renderHome(); alert('Configuración guardada.');
+  saveCfg();
+  buildCfgTable();
+  renderHome();
+  alert('Configuración guardada.');
 });
 $('btn-clear').addEventListener('click',()=>{ if(confirm('¿Borrar configuración?')){localStorage.removeItem(LS_KEY);loadCfg();buildCfgTable();renderHome();} });
 
@@ -582,7 +580,7 @@ function parseDirectorio(cols,rows){
 }
 
 /* ===== ASISTENCIA CÁLCULOS ===== */
-function asistenciaRangeForStudent(cols,rows,ref,start,end){ // fechas YYYY-MM-DD
+function asistenciaRangeForStudent(cols,rows,ref,start,end){
   const iId=findIdColumn(cols,rows); const iNom=idxOfAnyLoose(cols,['Nombre','Nombre del alumno','Alumno','Apellidos y Nombres','Nombre y Apellido']);
   let row=null; if(iId>=0 && ref.id) row=rows.find(r=>normText(r[iId])===normText(ref.id)); if(!row && iNom>=0 && ref.nombre) row=rows.find(r=>normText(r[iNom])===normText(ref.nombre));
   if(!row) return {present:0,total:0};
@@ -645,7 +643,6 @@ function renderStudentSections(){
   setHTML('faltantes', falt.length? falt.map(renderTrabajoItem).join('') : '<div class="empty">Sin faltantes.</div>');
   setHTML('tarde', tar.length? tar.map(renderTrabajoItem).join('') : '<div class="empty">Sin entregas tarde.</div>');
   setHTML('atiempo', ati.length? ati.map(renderTrabajoItem).join('') : '<div class="empty">Sin entregas a tiempo.</div>');
-  // Urgentes (orden por fecha objetivo y atraso)
   const urg=[...STUDENT_DATA.faltantes].map(p=>({p, d: (new Date()-new Date(normDate(p.fechaObjetivo)||p.fechaObjetivo||new Date()))/86400000 }))
     .sort((a,b)=> (normDate(a.p.fechaObjetivo)||'') .localeCompare(normDate(b.p.fechaObjetivo)||'') || b.d-a.d).map(x=>x.p).slice(0,6);
   setHTML('faltantes-urg', urg.length? urg.map(renderTrabajoItem).join('') : '<div class="empty">Sin faltantes urgentes.</div>');
@@ -658,17 +655,14 @@ async function openStudent(sheetId,cfg,alumno){
   $('back-to-group').onclick=e=>{e.preventDefault();show('view-group');}; show('view-student'); MOM_FILTER='ALL'; setMomentChips();
 
   try{
-    // Registro completo (para comparativas de grupo)
     let reg={cols:[],rows:[]}; try{reg=await loadSheetBlock(sheetId,'registro',cfg);}catch(e){}
     const entregasAll=parseRegistro(reg.cols,reg.rows);
     let entregasAlumno=entregasAll.filter(t=>normText(t.id)===normText(alumno.id));
     if(!entregasAlumno.length && alumno.nombre){entregasAlumno=entregasAll.filter(t=>normText(t.nombre)===normText(alumno.nombre));}
 
-    // Presets
     let pres={cols:[],rows:[]}; try{pres=await loadSheetBlock(sheetId,'presets',cfg);}catch(e){}
     const presets=parsePresets(pres.cols,pres.rows);
 
-    // Cruzar entregas ↔ presets
     const setUids=new Set(presets.map(p=>p.uid));
     const entregasPorUID=new Map(); const clavesEntregas=new Map();
     for(const t of entregasAlumno){ if(t.uidPreset) entregasPorUID.set(t.uidPreset,t); else clavesEntregas.set([normText(t.materia||''),normTrabajo(t.numero||''),normText(t.origen||''),normPagina(t.pagina||''),normDate(t.fechaObjetivo||'')].join('|'),t); }
@@ -680,17 +674,13 @@ async function openStudent(sheetId,cfg,alumno){
     }
     STUDENT_DATA={faltantes,tarde,aTiempo,alumno}; renderStudentSections();
 
-    // ===== Asistencia y comparativas =====
     const asis=await loadSheetBlock(sheetId,'asistencia',cfg);
     const today=new Date();
-
-    // Semana actual con fallback (como el KPI del home)
     const weekSet1=getWeekSet(today,false);
     const weekSet2=getWeekSet(today,true);
     function asistenciaBySetForStudent(set){
       const arr=Array.from(set);
-      const a=asistenciaRangeForStudent(asis.cols,asis.rows,alumno,arr[0],arr[arr.length-1]);
-      return a;
+      return asistenciaRangeForStudent(asis.cols,asis.rows,alumno,arr[0],arr[arr.length-1]);
     }
     let wkA=asistenciaBySetForStudent(weekSet1);
     if(wkA.total===0) wkA=asistenciaBySetForStudent(weekSet2);
@@ -700,16 +690,13 @@ async function openStudent(sheetId,cfg,alumno){
     }
 
     const d30=ymd(new Date(today.getFullYear(),today.getMonth(),today.getDate()-30));
-    // Alumno 30 días
     const d30A=asistenciaRangeForStudent(asis.cols,asis.rows,alumno,d30,ymd(today));
-    // Grupo 30 días
     const d30G=asistenciaRangeForGroup(asis.cols,asis.rows,d30,ymd(today));
 
     const pctWk=wkA.total?Math.round((wkA.present/wkA.total)*100):0;
     const pct30=d30A.total?Math.round((d30A.present/d30A.total)*100):0;
     const pct30G=d30G.total?Math.round((d30G.present/d30G.total)*100):0;
 
-    // Cumplimientos
     const deliveredAlumno=aTiempo.length+tarde.length; const totalPresets=presets.length;
     const cumpAlumno=totalPresets?Math.round((deliveredAlumno/totalPresets)*100):0;
     const alumnosCount=ALUMNOS?.length||0;
@@ -717,7 +704,6 @@ async function openStudent(sheetId,cfg,alumno){
     const expectedGrupo=alumnosCount*totalPresets;
     const cumpGrupo=expectedGrupo?Math.round((deliveredGrupo/expectedGrupo)*100):0;
 
-    // Tarjeta resumen + riesgo
     const risk = (()=>{
       const faltRatio = totalPresets? faltantes.length/totalPresets : 0;
       if (faltantes.length>10 || faltRatio>0.2 || pct30<75) return 'high';
@@ -731,20 +717,16 @@ async function openStudent(sheetId,cfg,alumno){
     $('sum-vsgrp').textContent= `${cumpAlumno}% / ${pct30}%  vs  ${cumpGrupo}% / ${pct30G}%`;
     $('sum-risk').textContent= risk==='high'?'ALTO':(risk==='med'?'MEDIO':'BAJO');
 
-    // Sparkline + racha
     const serie=last4WeeksSeries(asis.cols,asis.rows,alumno); drawSpark('spark',serie);
     const racha=rachaInasistencias(asis.cols,asis.rows,alumno); $('streak').textContent=`Racha de inasistencias: ${racha} día(s)`;
 
-    // Meta superior
     $('student-meta').textContent=`Hoja: ${sheetId} · Presets: ${totalPresets} · Entregas: ${deliveredAlumno} (tarde ${tarde.length}) · Faltantes: ${faltantes.length}`;
 
-    // Comparativa con grupo
     $('cmp-grupo').innerHTML=[
       {t:'Cumplimiento', v:`${cumpAlumno}%`, s:`Alumno: ${deliveredAlumno}/${totalPresets} · Grupo: ${cumpGrupo}%`},
       {t:'Asistencia 30 días', v:`${pct30}%`, s:`Alumno: ${d30A.present}/${d30A.total} · Grupo: ${pct30G}%`}
     ].map(x=>`<div class="card-mini"><div class="t">${x.t}</div><div class="v">${x.v}</div><div class="t">${x.s}</div></div>`).join('');
 
-    // Contacto (Directorio)
     let contactoHTML='<div class="empty">Sin datos de contacto.</div>';
     try{
       const dir=await loadSheetBlock(sheetId,'directorio',cfg);
@@ -755,7 +737,6 @@ async function openStudent(sheetId,cfg,alumno){
     }catch{}
     $('contacto').innerHTML=contactoHTML;
 
-    // Notas (localStorage)
     const NOTES_KEY=`audqr_notes_${sheetId}_${normText(alumno.id||alumno.nombre)}`;
     const notas=JSON.parse(localStorage.getItem(NOTES_KEY)||'{}');
     $('nota-resumen').value=notas.resumen||''; $('nota-comp').value=notas.comp||''; $('nota-fecha').value=notas.fecha||'';
