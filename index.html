@@ -358,29 +358,28 @@ function saveKpiPref(){ localStorage.setItem(KPI_PREF_KEY, JSON.stringify(KPI_PR
 
 function mondayDatesLabel(base){const ys=weekDates(base); return `${ys[0]} → ${ys[4]}`;}
 
-/* ====== KPI semanal ======
-   L-V; si no hay, L-D de la misma semana. Registra días reales, ajusta expDays.
+/* ====== KPI semanal (CORREGIDO) ======
+   Cuenta TODAS las columnas de fecha de la semana (L–V; si no hay, L–D).
+   expectedDaysMode==='registered' usa esas columnas; los otros valores fuerzan 1–5,
+   pero si hay más columnas reales, se ajusta al mayor.
 */
 async function computeGroupWeekAttendance(sheetId, cfg, baseDate, expectedDaysMode, mode){
-  const strict = (mode === 'date');
   try{
     const {cols, rows}=await loadSheetBlock(sheetId,'asistencia',cfg);
 
+    // Primero intentamos L–V; si no hay columnas en el rango, intentamos L–D
     const setLV = getWeekSet(baseDate,false);
     let dateCols = getDateColumns(cols).filter(i => setLV.has(normDate(cols[i])));
-
     if (dateCols.length === 0) {
       const setLD = getWeekSet(baseDate,true);
       dateCols = getDateColumns(cols).filter(i => setLD.has(normDate(cols[i])));
     }
 
+    // Presentes: sumamos marcas válidas; Total esperado = alumnos × días esperados
     let present = 0;
-    // Solo contamos fechas con algún registro (evita columnas 100% vacías)
-    const usable = dateCols.filter(i => rows.some(r => r[i] !== null && r[i] !== ''));
+    for(const r of rows){ for(const i of dateCols){ if(isPresent(r[i])) present++; } }
 
-    for(const r of rows){ for(const i of usable){ if(isPresent(r[i])) present++; } }
-
-    const regDays = usable.length;
+    const regDays = dateCols.length; // ← todas las fechas del rango, aunque estén vacías
     let expDays = (expectedDaysMode==='registered')
         ? regDays
         : Math.max(1, Math.min(5, +expectedDaysMode||5));
@@ -582,7 +581,8 @@ function parseDirectorio(cols,rows){
   return map;
 }
 
-/* ===== ASISTENCIA (alumno/grupo) — CORREGIDO ===== */
+/* ===== ASISTENCIA (CORREGIDO) ===== */
+// Alumno: cuenta todas las columnas de fecha dentro del rango (aunque estén vacías)
 function asistenciaRangeForStudent(cols,rows,ref,start,end){
   const iId=findIdColumn(cols,rows);
   const iNom=idxOfAnyLoose(cols,['Nombre','Nombre del alumno','Alumno','Apellidos y Nombres','Nombre y Apellido']);
@@ -592,26 +592,21 @@ function asistenciaRangeForStudent(cols,rows,ref,start,end){
   if(!row && iNom>=0 && ref.nombre) row=rows.find(r=>normText(r[iNom])===normText(ref.nombre));
   if(!row) return {present:0,total:0};
 
-  const dateColsAll=getDateColumns(cols).filter(i=>{
+  const dateCols = getDateColumns(cols).filter(i=>{
     const d=normDate(cols[i]); return d && d>=start && d<=end;
   });
 
-  // Solo fechas con algún registro en TODO el grupo
-  const dateCols = dateColsAll.filter(i => rows.some(r => r[i] !== null && r[i] !== ''));
-
-  const total = dateCols.length; // cada fecha cuenta como clase esperada
+  const total = dateCols.length; // ← todas las fechas del rango
   let present=0;
   for(const i of dateCols){ if(isPresent(row[i])) present++; }
   return {present,total};
 }
 
+// Grupo: presente vs (alumnos × días del rango)
 function asistenciaRangeForGroup(cols,rows,start,end){
-  const dateColsAll=getDateColumns(cols).filter(i=>{
+  const dateCols = getDateColumns(cols).filter(i=>{
     const d=normDate(cols[i]); return d && d>=start && d<=end;
   });
-
-  // Solo fechas con algún registro en el grupo
-  const dateCols = dateColsAll.filter(i => rows.some(r => r[i] !== null && r[i] !== ''));
 
   const totalExpected = rows.length * dateCols.length;
   let present=0;
@@ -626,7 +621,7 @@ function last4WeeksSeries(cols,rows,ref){
   return series;
 }
 
-/* Racha — CORREGIDO: trata vacío como falta, pero ignora columnas 100% vacías */
+/* Racha — trata vacío como falta; ignora columnas 100% vacías en TODO el grupo */
 function rachaInasistencias(cols,rows,ref){
   const iId=findIdColumn(cols,rows);
   const iNom=idxOfAnyLoose(cols,['Nombre','Nombre del alumno','Alumno']);
@@ -637,19 +632,16 @@ function rachaInasistencias(cols,rows,ref){
 
   const today = ymd(new Date());
   const dateColsAll = getDateColumns(cols)
-    .map(i=>({i,d:normDate(cols[i])}))
-    .filter(x=>x.d && x.d<=today);
+    .map(i=>({i,d:normDate(cols[i])})).filter(x=>x.d && x.d<=today);
 
-  // Usables: alguna marca en el grupo
   const usable = dateColsAll.filter(x => rows.some(r => r[x.i] !== null && r[x.i] !== ''));
-
   usable.sort((a,b)=> b.d.localeCompare(a.d));
 
   let streak=0;
   for(const {i} of usable){
     const v=row[i];
-    if(isPresent(v)) break;     // presente → corta la racha
-    streak++;                   // vacío o no-presente → cuenta como falta
+    if(isPresent(v)) break;
+    streak++;
   }
   return streak;
 }
