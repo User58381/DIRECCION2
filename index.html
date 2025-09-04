@@ -188,7 +188,7 @@
       </div>
       <div>
         <svg id="spark" class="spark" viewBox="0 0 160 40" preserveAspectRatio="none"></svg>
-        <div class="hint" id="streak">Racha de inasistencias: –</div>
+        <div class="hint" id="streak">—</div>
       </div>
     </div>
 
@@ -646,6 +646,24 @@ function rachaInasistencias(cols,rows,ref){
   return streak;
 }
 
+/* Última marca (para Dirección) — ignora columnas 100% vacías */
+function lastMarkStatus(cols, rows, ref){
+  const iId  = findIdColumn(cols, rows);
+  const iNom = idxOfAnyLoose(cols,['Nombre','Nombre del alumno','Alumno']);
+  let row=null;
+  if(iId>=0 && ref.id) row=rows.find(r=>normText(r[iId])===normText(ref.id));
+  if(!row && iNom>=0 && ref.nombre) row=rows.find(r=>normText(r[iNom])===normText(ref.nombre));
+  if(!row) return null;
+
+  const today = ymd(new Date());
+  const infos = getDateColumns(cols).map(i=>({i, d:normDate(cols[i])})).filter(x=>x.d && x.d<=today);
+  const usable = infos.filter(x => rows.some(r => r[x.i] !== null && r[x.i] !== ''))
+                      .sort((a,b)=> b.d.localeCompare(a.d));
+  if(!usable.length) return null;
+  const v = row[usable[0].i];
+  return isPresent(v) ? 'Presente' : 'Falta';
+}
+
 function drawSpark(elId,values){
   const w=160,h=40; const max=100,min=0; const step=w/(values.length-1 || 1);
   const y=v=> h - ( (v-min)/(max-min) )*h;
@@ -758,7 +776,12 @@ async function openStudent(sheetId,cfg,alumno){
     $('sum-risk').textContent= risk==='high'?'ALTO':(risk==='med'?'MEDIO':'BAJO');
 
     const serie=last4WeeksSeries(asis.cols,asis.rows,alumno); drawSpark('spark',serie);
-    const racha=rachaInasistencias(asis.cols,asis.rows,alumno); $('streak').textContent=`Racha de inasistencias: ${racha} día(s)`;
+    const racha=rachaInasistencias(asis.cols,asis.rows,alumno);
+
+    // NUEVO: “Último día” + “Racha” + “Faltas esta semana”
+    const faltasSemana = wkA.total ? (wkA.total - wkA.present) : 0;
+    const ultimoDia = lastMarkStatus(asis.cols, asis.rows, alumno) || '—';
+    $('streak').textContent = `Último día: ${ultimoDia} · Racha de faltas: ${racha} día(s) · Faltas esta semana: ${faltasSemana}/${wkA.total || 0}`;
 
     $('student-meta').textContent=`Hoja: ${sheetId} · Presets: ${totalPresets} · Entregas: ${deliveredAlumno} (tarde ${tarde.length}) · Faltantes: ${faltantes.length}`;
 
